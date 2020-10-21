@@ -1,0 +1,90 @@
+---
+title: "Code from the Quizzes"
+author: "Siim Põldre"
+date: "21 10 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Quesstion 1
+
+Laura keeps record of her loan applications and performs a Bayesian analysis of her success rate \(\theta\). Her analysis yields a \(\text{Beta}(5,3)\)posterior distribution for \(\theta\).
+
+The posterior mean for \(\theta\) is equal to \(\frac{5}{5+3} = 0.625\)	
+ = 0.625. However, Laura likes to think in terms of the odds of succeeding, defined as \(\frac{\theta}{1 - \theta}\) , the probability of success divided by the probability of failure.
+ 
+Use R to simulate a large number of samples (more than 10,000) from the posterior distribution for \(\theta\) and use these samples to approximate the posterior mean for Laura's odds of success (\(\text{E}(\frac{\theta}{1-\theta}\))
+
+## Answer 1
+
+Siin tuleb kõigepealt simuleerida valim antud jaotusest 
+
+```{r}
+theta = rbeta(9999, 5, 3)
+```
+Siis rakendada šansideks muutmise funktsiooni
+
+```{r}
+alpha = theta/(1-theta)
+```
+
+Ning seejärel võtta keskmine üle kõigi saadud 9999 valimi
+
+```{r}
+mean(alpha)
+```
+
+See annab meile posterior oddside jaotuse, mis on väga tugevalt paremale kaldu nin oddside posterior mean on 2.5, samal ajal kui originaalse theta keskmise oddsideks muutmisel tuleb keskmine 1.667. Oddside posterior mediaan võib olla siin parem mõõdik.
+
+# Question 1.2
+
+Laura also wants to know the posterior probability that her odds of success on loan applications is greater than 1.0 (in other words, better than 50:50 odds).
+
+Use your Monte Carlo sample from the distribution of \(\theta\) to approximate the probability that \(\frac{\theta}{1-\theta}\) is greater than 1.0.
+
+Report your answer to at least two decimal places.
+
+
+## Answer 1.2
+
+Sisuliselt peame lihtsalt vaatama kui suur osa on suurema theta väärtusega kui 0.5 **keskmiselt**
+
+```{r}
+theta = rbeta(9999, 5, 3)
+alpha = theta / (1 - theta)
+mean( alpha )
+mean( alpha > 1.0 )
+```
+
+# Question 2
+
+Use a (large) Monte Carlo sample to approximate the 0.3 quantile of the standard normal distribution (\(\text{N}(0,1)\), the number such that the probability of being less than it is 0.3.
+
+Use the quantile function in R. You can of course check your answer using the qnormfunction.
+
+## Answer 2
+
+```{r}
+quantile( rnorm(9999, 0.0, 1.0), 0.3 )
+qnorm(0.3, 0.0, 1.0)
+```
+
+# Question 3
+
+To measure how accurate our Monte Carlo approximations are, we can use the central limit theorem. If the number of samples drawn m is large, then the Monte Carlo sample mean \(\bar{\theta^*}\) used to estimate \(\text{E}(\theta)\) approximately follows a normal distribution with mean \(\text{E}(\theta)\) and variance \(\text{Var}(\theta) / m\). If we substitute the sample variance for \(\text{Var}(\theta)\), we can get a rough estimate of our Monte Carlo standard error (or standard deviation).
+
+Suppose we have 100 samples from our posterior distribution for \(\theta\), called \(\theta_i^*\) , and that the sample variance of these draws is 5.2. A rough estimate of our Monte Carlo standard error would then be \(\sqrt{ 5.2 / 100 } \approx 0.228\). So our estimate \(\bar{\theta^*}\) is probably within about 0.4560 (two standard errors) of the true \(\text{E}(\theta)\).
+
+See tuleb sellest, et kui me võtame 100 \(\theta\) tõmmet (valim, mis koosneb  ka valimitest posterior jaotusest) ja nende tõmmete valimi variatsioon on 5.2, siis valemiga  \(\sqrt{ 5.2 / 100 } \approx 0.228\) me leiame sisuliselt standardhälbe (ruutjuur) ühe tõmbe (valimi liikme) kohta ja saame seega järeldada, et meie tõmmatud \(\theta\) keskmine on 95% tõenäosusega tõelisest \(\theta\) keskmisest 0.456 kaugusel.
+  
+What does the standard error of our Monte Carlo estimate become if we increase our sample size to 5,000? Assume that the sample variance of the draws is still 5.2.
+
+```{r}
+sqrt(5.2/5000)
+```
+  
+
+

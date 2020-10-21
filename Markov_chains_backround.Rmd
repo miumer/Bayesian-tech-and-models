@@ -1,0 +1,179 @@
+---
+title: "Markov Chains Backround"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Markovi ahelate tõenäosused ja eeldus
+
+Kui meil on juhuslike muutujate jada \(X_1\), \(X_2\), …, \(X_n\), kui subskriptid 1,2,...,n on üksteisele järgnevad punktid ajas, saame kasutada tõenäosuse chain-rule’i, et arvutada kogu jada tõenäosus:
+
+\(p(X_1, X_2, \ldots X_n) = p(X_1) \cdot p(X_2 | X_1) \cdot p(X_3 | X_2, X_1) \cdot \ldots \cdot p(X_n | X_{n-1}, X_{n-2}, \ldots, X_2, X_1)\) 
+
+Markovi ahelate puhul on see väljendus lihtsustatud kasutades Markov assumption-it (Markovi eeldus). Kui meil on kogu tunnuste ajalugu, siis selle eelduse kohaselt sõltub iga juhusliku tunnuse tõenäosus järgneval ajahetkel ainult praegusest tunnusest. Matemaatiliselt on see väljendatud nii:
+
+\(p(X_{t+1} | X_t, X_{t-1}, \ldots, X_2, X_1 ) = p(X_{t+1} | X_t)\)
+
+Kõigi t = 2,....,n puhul. Selle eelduse kohaselt saab esimese väljenduse kirjutada nii:
+
+\(p(X_1, X_2, \ldots X_n) = p(X_1) \cdot p(X_2 | X_1) \cdot p(X_3 | X_2) \cdot p(X_4 | X_3) \cdot \ldots \cdot p(X_n | X_{n-1})\)
+
+, mis on palju lihtsam kui originaal. See väljendus koosneb esimese muutuja algsest jaotusest, \(p(X_1)\), ja n-1 ülemineku tõenäosusest (**transition probability**). Tavaliselt teeme veel sellise eelduse, et ülemineku tõenäosused ei muutu ajas, ja seega üleminek ajast t aega t+1 sõltub ainult Xt väärtusest.
+
+## Näited Markovi ahelatest
+
+Diskreetne Markovi ahel
+Oletame, et meil on salajane number 1 ja 5 vahel. See on algne number ajahetkel 1. Igal järgneval ajahetkel muutub see number järgmiste reeglite kohaselt:
+
+1. Viska münti
+2. a) Kui münt on kull, siis suureda salajast numbrit 1 võrra (5 muutub 1ks)
+  b) Kui münt on kiri, siis vähenda salajast numbrit 1 võrra (1 muutub 5ks)
+3. Korda seda tegevust n korda, ja pane salajase numbrit areng kirja
+
+Enne eksperimenti võime mõelda salajaste numbrite jadale {1,2,3,4,5} kui juhuslike muutujate jadale, kus igaüks võtab ühe väärtuse {1,2,3,4,5}. Kui me eeldame, et münt on aus, siis on iga viske mõlema tulemuse tõenäosus 0.5.
+
+Kui meie väärtus on hetkel 4 ja numbrite ajalugu on (2,1,2,3), siis mis on tõenäosus, et järgmisel viskel on salajane number 5? Selle mängu reeglite kohaselt sõltub järgmise arvu (5) tõenäosus ainult sellest numbrist, mis meil hetkel on (4), seega on tõenäosus, et järgmine on 5, 0.5. Seega pole eelneval ajalool tähtsust ja tegemist on Markovi ahelaga. 
+
+Siin on tegemist diskreetse Markovi ahelaga, kus juhusliku muutuja võimalikud väärtused tulevad diskreetsest hulgast. Neid võimalikke väärtuseid (salajased numbrid) kutsutakse ahela seisunditeks (states of the chain). Seisundid on tavaliselt numbrid, nagu siin näites, kuid nad võivad esindada ükskõik mida. Näiteks kas ilm mingil päeval on 1 - hea, 2 - halb.
+
+## Random walk (continuous) 
+
+Kui meil on Markovi ahela pidev versioon, kus Xt = 0 ja meil on selline ülemineku mudel:
+\(p(X_{t+1}|X_t=x_t) = N(x_t,1)\). See tähendab, et järgmise seisundi tõenäosusjaotus on normaaljaotus, mille variatsioon on 1 ja keskmine on võrdne praeguse seisundiga. Seda kutsutakse ka “random walk”-iks. Tegemist on Markovi ahelaga, sest üleminek järgmisesse seisundisse \(X_{t+1}\) sõltub ainult praegusest seisundist \(X_t\). 
+
+
+```{r}
+set.seed(34)
+
+n=100
+x=numeric(n)
+
+for (i in 2:n) {
+  x[i] = rnorm(1, mean=x[i-1], sd=1.0)
+}
+
+plot.ts(x)
+```
+
+Siin võtamegi iga järgmise ajaühiku ennustamiseks ühe arvu normaaljaotusest, mille keskmine on eelnev ajaühik ja standardhälve on 1.
+
+## Transition matrix
+
+Pöördume tagasi diskreetse Markovi ahela juurde. Kui me eeldame, et ülemineku tõenäosused ei muutu ajas, siis on meil kokku 25 ehk \((5^2)\) üleminekutõenäosust. Need üleminekutõenäosused saab sobitada maatriksisse Q:
+
+\(Q = 
+\begin{pmatrix}
+0 & .5 & 0 & 0 & .5 \\
+.5 & 0 & .5 & 0 & 0 \\
+0 & .5 & 0 & .5 & 0 \\
+0 & 0 & .5 & 0 & .5 \\
+.5 & 0 & 0 & .5 & 0 \\
+\end{pmatrix}\)
+
+, kus üleminek seisundist 1 on esimeses reas, üleminekud seisundist 2 on teises reas jne ning tulbad tähistavad seisundit, millesse üle minnakse. Kuna esimene seisund saab minna ainult teise seisundisse 0.5 tõenäosusega ja 5-dasse seisundisse 0.5 tõenäosusega, siis on need ka märgitud. Näiteks tõenäosus \(p(X_{t+1}=5|X_t=4)\) on näha neljandas reas ja 5das tulbas.
+
+Ülemineku maatriks on eriti kasulik, kui me tahame leida tõenäosuseid, mida on seotud ahela mitme sammuga. Näiteks: me võime olla huvitatud tõenäosuest \(p(X_{t+2}=3|X_t=1)\) ehk tõenäosusest, et meie salajane number on kahe ajaühiku pärast 3, kui see on praegu 1. Me saame seda arvutada nii: \(\sum_{k=1}^5 p(X_{t+2}=3 \mid X_{t+1}=k) \cdot p(X_{t+1}=k \mid X_t=1)\), mis leidub maatriksi \(Q^2\) esimeses reas ja kolmandas tulbas. 
+
+R-is saame seda arvutust läbi viia nii:
+
+```{r}
+Q = matrix(c(0.0, 0.5, 0.0, 0.0, 0.5,
+             0.5, 0.0, 0.5, 0.0, 0.0,
+             0.0, 0.5, 0.0, 0.5, 0.0,
+             0.0, 0.0, 0.5, 0.0, 0.5,
+             0.5, 0.0, 0.0, 0.5, 0.0), 
+           nrow=5, byrow=TRUE)
+
+Q %*% Q # Matrix multiplication in R. This is Q^2.
+
+(Q%*%Q)[1,3]
+
+```
+
+Seega kui salajane number on praegu 1, siis tõenäosus, et see on 3 kahe sammu pärast, on .25
+
+**NB!! Tegelikult on oluline teada algset seisundi vektorit (see on üks rida) ja see korrutada n ülemineku maatriksiga (lähtuvalt kui palju ajaühikuid möödub) ja lõpuks saab vastuseks ka vektori, mille iga liige näitab, mis on tõenäosus, et uus salajane number on pärast n ajaühikut, selle liikme indeksile vastav arv (iga indeks kujutab ühte võimalikku salajast arvu)**
+
+## Püsiv jaotus (Stationary distribution)
+
+Kui me tahame leida salajase numbri tõenäosusjaotust kauges tulevikus, nt \(p(X_{t+h}|X_t\), kus h on suur number, siis saame selle arvutada erinevate h väärtuste puhul nii:
+
+```{r}
+Q5 = Q %*% Q %*% Q %*% Q %*% Q # h=5 steps in the future
+round(Q5, 3)
+
+Q10 = Q %*% Q %*% Q %*% Q %*% Q %*% Q %*% Q %*% Q %*% Q %*% Q # h=10 steps in the future
+round(Q10, 3)
+
+Q30 = Q
+for (i in 2:30) {
+  Q30 = Q30 %*% Q
+}
+round(Q30, 3) # h=30 steps in the future
+```
+
+Mida kaugemale tulevik läheb, seda rohkem **converge**'ivad. See tähendab, et praegune seisund on aina vähem tähtis tuleviku paika panemisel. Kui me laseme h-l minna väga suureks, kuni limiidini, siis kõik read ülemineku maatriksis, saavad võrdseks (.2,.2,.2,.2,.2)-ga. Kui Markovi ahelat jooksutada väga pikka aega, siis tõenäosus lõpetada igas seisundis on 1/5 = .2 kõigi 5 seisundi puhul. Need **long-range tõenäosused võrduvad nn *stationary distribution*'iga Markovi ahelas** .
+
+**Stationary distribution** on ahela algne seisund, mille suhtes ülemineku tegemine ei muuda tõenäosust mingis seisundis lõppetada
+
+```{r}
+c(0.2, 0.2, 0.2, 0.2, 0.2) %*% Q
+```
+
+Kui ahel jõuab sellesse jaotusesse, siis see jääb kõigi järgnevate seisundite jaotuseks. 
+
+Näide:
+
+```{r}
+n = 5000
+x = numeric(n)
+x[1] = 1 # fix the state as 1 for time 1
+for (i in 2:n) {
+  x[i] = sample.int(5, size=1, prob=Q[x[i-1],]) # draw the next state from the intergers 1 to 5 with probabilities from the transition matrix Q, based on the previous value of X.
+}
+
+table(x)/n #viie seisundi "külastamiste" jaotus
+```
+
+See "külastamiste" jaotus on üldiselt võrdne **stationaryi distribution**'iga. Sest kui võimalikult palju iteratsioone läbida, ja kõigi seisundite tõenäosus on võrdne, siis on loogiline, et pikas perspektiivis satume kõikidesse seisunditesse ühe palju.
+
+Kui me simuleerime Markovi ahelaid paljude iteratsioonidega, siis saab valimeid kasutada Manto Carlo valimina **statsionaarsest jaotusest**. Nii kasutamegi Marko ahelaid Bayesi järelduste tegemises. Selleks, et simuleerida keerulisest järeljaotusest, paneme püsti Markovi ahela, mille **statsionaarne jaotus on meie keeruline posterior jaotus**, ja jooksutame seda.
+
+**NB!** Statsionaarne jaotus ei eksisteeri aga iga Markovi ahelda puhul. Markovi ahelal peavad olema teatud omadused, mida me siin ei aruta. Kuid need Markovi ahela algoritmid, mida me kasutame Monte Carlo hinnangutes toodavad alati statsionaarsed jaotused.
+
+## Pideva muutujaga näide
+
+Pideva muutujaga random walk näite puhul, mida eelnevalt käsitlesime, ei ole statsionaarset jaotust. Me saame aga seda jaotust modifitseerida nii, et tal oleks statsionaarne jaotus.
+
+Kui ülemineku jaotus on \(p(X_{t+1}|X_{t} = x_{t}) = N(\phi x_t,1)\), kus \(-1<\phi<1\) ja kus tõenäosusjaotus järgmise seisundi jaoks on normaaljaotus, mille variatsioon on 1 ja keskmine on võrdne \(\phi\) korda praegune seisund. Nii kaua, kui \(\phi\) on -1 ja 1 vahel,  eksisteerib selle mudeli puhul statsionaarne jaotus.
+
+Simuleerime ahela \(\phi = -0.6\) jaoks:
+
+```{r}
+set.seed(38)
+
+n = 1500
+x = numeric(n)
+phi = -0.6
+
+for (i in 2:n) {
+  x[i] = rnorm(1, mean=phi*x[i-1], sd=1.0)
+}
+
+plot.ts(x)
+```
+
+Teoreetiline statsionaarne jaotus selle ahela jaoks on normaaljaotuslik keskmisega 0 ja variatsiooniga \(1/(1-\phi^2)\), mis meie näites on võrdne 1.562-ga. Nüüd vaatame meie ahela histogrammi ja võrdleme seda teoreetilise statsionaarse jaotusega:
+
+```{r}
+hist(x, freq=FALSE)
+curve(dnorm(x, mean=0.0, sd=sqrt(1.0/(1.0-phi^2))), col="red", add=TRUE)
+legend("topright", legend="theoretical stationary\ndistribution", col="red", lty=1, bty="n")
+```
+
+Tundub, et ahel on jõudnud teoreetilise statsionaarse jaotuseni. Seega saame seda simulatsiooni käsitleda Monte Carlo valimina sellesse statsionaarsest jaotuest, mille keskmine on 0 ja variatsioon on 1.562.
+
+Kuna enamus posterior jaotuseid, millega me tegeleme on pidevmuutujatel põhinevad, siis on meie Monte Carlo simulatsioonid Markovi ahelatega sarnased sellele näitele.
