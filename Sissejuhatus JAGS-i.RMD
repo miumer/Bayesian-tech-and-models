@@ -1,0 +1,109 @@
+---
+title: "Sissejuhatus JAGS-i"
+author: "Siim Põldre"
+date: "4 11 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("rjags")
+```
+
+R-is JAGS-i mudeli jooksutamises on neli sammu:
+
+1. Määra mudel
+2. Pane mudel töövalmis
+3. Jooksuta MCMC samplerit
+4. Järeltöötlus
+
+Järgnevalt vaatame neid samme juba eelnevalt käsitletud näite varal, kus uurime personali protsentuaalset muutust eelmise aastaga võrreldes n = 10 ettevõtte puhul. Me kasutasime normaaljaotuslikku *likelihood* funktsiooni, mille variatsioon on teada, ning t jaotusega priorit teadmata keskmise jaoks. 
+
+## 1. Määra mudel
+
+Siin sammus anname me JAGSile mudeli hierargilise struktuuri, määrates andmetele jaotused (*likelihood*) ja parameetrid (*priors*). 
+
+Meie hierarhiline mudel näeab matemaatiliselt välja selline:
+
+![Normal likelihood with t prior](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/hierarhiline_mudel_normaaljaotus.png)
+
+
+Esimese sammu süntaks on R-ile väga sarnane, kuid on palju võtmetähtsusega erinevusi.
+
+* n - andmete suurus
+* 1.0/sig2 - precision ega variatsiooni reciprocal
+* dt jaotuse puhul on inverse scale tavalise "scale paramteeri" inverse
+* JAGS nõuab, et mudelid oleks stringid
+
+```{r}
+mod_string = " model {
+  for (i in 1:n) { 
+    y[i] ~ dnorm(mu, 1.0/sig2)
+  }
+  mu ~ dt(0.0, 1.0/1.0, 1.0) # location, inverse scale, degrees of freedom
+  sig2 = 1.0
+} " 
+```
+
+Suurim vahe JAGSi ja Ri süntaksi vahel on see, kuidas jaotuseid parametriseeritakse. Pane tähele, et normaaljaotus kasutab keskmist ja täpsust *precision* (variatsiooni asemel). Pannes JAGS-is jaotuseid paika, on alati mõistlik vaadata JAGSi kasutusjuhendist peatükki jaotustest.
+
+## 2. Pane mudel töövalmis
+
+* siin peab andmetel olema sama nimi, mis üleval pool mudelis oli märgitud
+* n on andmete vektori pikkus
+* paramsile võib panna erinevaid muutujaid sulgudesse, aga me otsime keskmist
+* inits funktsion teeb initsist listi, milles on otsitavad väärtuse algne väärtus..(initial value)
+* textConnection(mod_string) on meie mudel, mille tegime üleval. Tihti on see eraldi tekstidokumendis.
+
+```{r}
+set.seed(50)
+y = c(1.2, 1.4, -0.5, 0.3, 0.9, 2.3, 1.0, 0.1, 1.3, 1.9)
+n = length(y)
+
+data_jags = list(y=y, n=n)
+params = c("mu")
+
+inits = function() {
+  inits = list("mu"=0.0)
+} # optional (and fixed)
+
+mod = jags.model(textConnection(mod_string), data=data_jags, inits=inits)
+```
+
+Algsete väärtuste määramiseks on mitmeid viise. Nad saab ise paika panna, nagu me oleme siin teinud, või nad saab määrata juhuslikena, nt list("mu"=rnorm(1)). Samuti võib algsed väärtused lihtsalt välja jätta ning JAGS paneb nad ise paika.
+
+## 3. MCMC sampleri jooksutamine
+
+* update - anname mudeli ja määrame, mitu updateitimis iteratsiooni me tahame mudelis. See jooksutab samplerit 500 korda ilma valimite salvestamiseta - see annab ahelale natuke aega, et leida statsionaarne jaotus (pmtslt sama, mis esimeste iteratsioonide ära kustutamine)
+* coda.samples - simuleerib Markovi Ahela ja hoiab simuleeritud väärtused alles. Intial jooksutamist pole vaja, sest ta on juba jooksnud 500 korda ja ta jätkab sealt simuleeitud väärtuste alles hoidmisega.
+
+```{r}
+update(mod, 500) # burn-in
+
+mod_sim = coda.samples(model=mod,
+                       variable.names=params,
+                       n.iter=1000)
+```
+
+coda.samples-sist räägime edaspidistes näidetes.
+
+## 4. Järeltöötlus
+
+Siin hindame Markovi Ahelaid, et näha, kas simulatsioon on järelduste tegemiseks sobiv.
+
+```{r}
+summary(mod_sim)
+```
+See output annab meile simuleeritud väärtuste parameetrid. 
+
+```{r}
+library("coda")
+plot(mod_sim)
+```
+
+
+Järgnevates loengutes käsitleme järeltöötlust sügavamalt.
+

@@ -1,0 +1,220 @@
+---
+title: 'Lesson 4: Metropolis-Hastings'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lesson 4.1
+
+**Metropolis-Hastings** on algoritm, mis võimaldab meil moodustada valimeid üldisest tõenäosusjaotusest (***target distribution***) isegi kui selle jaotuse normaliseeriv konstant pole meile teada. Selleks me loome Markovi ahela, mille statsionaarne jaotus on ***target distribution***, ja võtame sealt valimi. See tähendab, et me valime suvalise algväärtuse, ja iteratiivselt võtame kolmandast jaotusest (***proposal distribution*** - sellisest, millest on kerge valimeid tõmmata) tõmmatud valimi kandidaate vastu või lükkame neid tagasi.
+
+## Algoritm
+
+Oletame, et me tahame toota valimeid $p(\theta) \propto g(\theta)$ ***target distribution***-ist ja me ei tea normaliseerivate konstanti (sest $\int g(\theta)d\theta$-t on raske või võimatu arvutada) ning seega meil on ainult $g(\theta)$, millega töötada. $g(\theta)$ märgib seejuures mingi jaotuse, mis on defineeritud $\theta$ poolt, likelihoodi ja priori korrutist (tuleta meelde Bayesi teoreemi joone pealset osa). Metropolis-Hastings algoritm töötab järgmisel põhimõttel: 
+
+1. Valime algse väärtuse $(\theta)_0$, kus $\theta$ märgib väljundeid tootvat jaotust alghetkel (nt mündiviske puhul, kas münt on $\theta=fair$ või $\theta=loaded$) ehk seda, milline on ahela seisund alghetkel (erinevate väljundite tõenäosused algsel hetkel). $(\theta)_0$ on esimesel korral tegelikult $(\theta_{i-1})$ ehk seisund (mis on ka tõenäosusjaotus, mida saab väljendada ka markovi maatriksiga), kus oleme praegu.
+2. Kõigi i = 1, ..., m iteratsioonide puhul kordame samme
+    a. Tõmbame valimi kandidaadi $\theta^*$ ***proposal distribtuion***-ist $q(\theta^*|\theta_{i-1})$. See, kas kandidaat jaotus saab meie uueks seisundiks või jaotuseks, sõltub järgnevast arvutusest:
+    b. Arvutame suhte $\alpha = \frac{g(\theta^*) / q(\theta^* \mid \theta_{i-1}) }{g(\theta_{i-1}) / q(\theta_{i-1} \mid \theta^*)} = \frac{g(\theta^*)q(\theta_{i-1} \mid \theta^*)}{g(\theta_{i-1})q(\theta^* \mid \theta_{i-1})}$. Selleks me peame joone pealse osa jaoks 
+        * kõigepealt hindame ***proposal distribtuion***-ist tõmmatud kandidaadi $\theta^*$ likelihoodi ja $\theta^*$ esinemise priori korrutist funktsiooni g() abil, mis on defineeritud kogutud andmete ja valitud priori poolt ja on proportsionaalne ***target distribution***-iga. See annab meile tõmmatud kandidaadi $\theta^*$ g() funktsiooni kohase likelihoodi ja selle sama $\theta^*$ priori korrutise, mis on proportsionaalne meie eesmärgiks oleva p() tõenäosusjaotusega (proportsionaalne joone pealne osa bayesi valemis). Peame meeles , et p() on meie otsitav posterior jaotus, mis annab tõenäosused erinevatele $\theta$ poolt defineeritud madalamal tasemel olevatele jaotustele (nt kui tõenäolised on erinevate "success" tõenäosustega (ehk $\theta$ parameetritega) binomiaalsed jaotused), mis toodavad väljundeid vastavalt parameetrile $\theta$.  **Näiteks** binomiaalse jaotuse puhul, kui oleme saanud 2 *headsi* 5st, oleks $g(\theta^*)$ $f(x=2|\theta^*)f(\theta^*)$ ehk 2 saamise binomil-ikelihood $\theta^*$ puhul korda $\theta^*$ prior jaotus
+        * seejäral hindame $q(\theta^* \mid \theta_{i-1})$ ehk q() funktsioonist lähtuvalt tõmmatud kandidaadi $\theta^*$ sellest samast q() ***proposal distribtuion***-ist tõmbamise tõenäosust juhul, kui eelmine tõmmatud väärtus (mis tõmmati varasema iteratsiooni proposalist, esimesel juhul lihtsalt valitud algseisund) oli $\theta_{i-1}$ ehk seda kui suur tõenäosus oli üldse seda väärtust seekord tõmmata ***proposal distribtuion***-ist kui eelmine tõmbamine andis $\theta_{i-1}$. Üks võimalus, et q() funktsioon on deterministlik, mis on näha ka all oleva binomiaalset jaotust käsitleva pildi peal, kus meil on kaks võimalikku kandidaati ($\theta$ = fair või $\theta$ = loaded) ja kui praegune seisund $\theta_{i-1}$ = fair, siis $\theta^*$ = loaded 100% tõenäosusega, sest proposime alati praegusesterineva. Seejärel leidma nende suhte. **Ja joone aluse osa jaoks**  
+        * hindama ***proposal distribtuion***-ist tõmmatud kandidaadist $\theta_{i-1}$ lähtuvat kogutud andmete likelihoodi ja$\theta_{i-1}$ esinemise priori korrutist funktsioonis g (lähtub ***target distribution***-ist), mis annab meile tõmmatud kandidaadi $\theta_{i-1}$ g() funktsiooni kohase likelihoodi ja selle sama $\theta_{i-1}$ priori korrutise, mis on proportsionaalne meie eesmärgiks oleva p() tõenäosusjaotusega (proportsionaalne joone pealne osa bayesi valemis ehk likelihood kui $\theta_{i-1}$ oleks väljundite tõenäosuseid (jaotust) defineeriv parameeter). Peame meeles , et p() on jaotus, mis annab tõenäosused erinevatele $\theta$ poolt defineeritud madalamal tasemel olevatele jaotustele. Need madalama taseme jaotused toodavad väljundeid vastavalt parameetrile $\theta$, mis defineerib nende väljundite tootmise tõenäosue.  **Näiteks** binomiaalse jaotuse puhul, kui oleme saanud 2 *headsi* 5st, oleks $g(\theta_^*)$ $f(x=2|\theta^*)f(\theta^*)$ ehk 2 saamise binomil-ikelihood $\theta_{i-1}$ puhul korda $\theta_{i-1}$ prior jaotus.
+        * ja siis hindama hindame $q(\theta_{i-1} \mid \theta^*)$ funktsioonist lähtuvat tõmmatud kandidaadi $\theta_{i-1}$ ***proposal distribtuion***-ist tõmbamise tõenäosust juhul, kui eelmine tõmmatud väärtus (mis tõmmati varasema iteratsiooni proposalist, esimesel juhul lihtsalt valitud algseisund) oli $\theta^*$ ehk seda kui suur tõenäosus oli üldse seda väärtust seekord tõmmata ***proposal distribtuion***-ist kui eelmine tõmbamine andis $\theta^*$. Üks võimalus, et q() funktsioon on deterministlik, mis on näha ka all oleva binomiaalset jaotust käsitleva pildi peal, kus meil on kaks võimalikku kandidaati ($\theta$ = fair või $\theta$ = loaded) ja kui praegune seisund $\theta_{i-1}$ = fair, siis $\theta^*$ = loaded 100% tõenäosusega ja vastupidi, sest proposime alati praegusest erineva $\theta$. Seejärel leidma nende suhte. 
+        
+Ning omakorda leidma joone ülemise ja alumise osa suhte. Kui me selle ümber korraldame, siis saame pärast võrdusmärki näha oleva suhte, mis väljendab suhet praegu tõmmatud ehk propositud väärtuse **target distribution**-ni kohase g() funktsiooni ja praegu kehtiva väärtuse tõenäosuse (propositud väärtuse korral) ja praegu kehtiva väärtuse **target distribution**-ni kohase g() funktsiooni ja praegu propositud väärtuse tõenäosuse (kehtiva väärtuse korral) korrutise vahel.   
+Teisiti sõnastades vaatame joone pealse osa puhul tõenäosust/likelihoodi (in a loose sense) saada kahte väärtust korraga: tõenäosust saada proposalist tõmmatud $\theta^*$ väärtust ***target distribution***-ist  ja samal ajal tõenäosust (q() funktsiooni kohaselt) saada selle tõmmatud väärtuse korral praegu kehtivat $\theta_{i-1}$-te (praegu tõmmatud väärtuse korral eelnevat väärtust, sest see on ainuke ja potentsiaalselt parim jaotus/seisund, mis meil hetkel on, kust saaksime $\theta_{i-1}$-te tõmmata, sest markovi ahelad keskenduvad ainult kahele seisundile).  
+
+Samal ajal joone aluse osa puhul vaatame ka tõenäosust saada kahte asja korraga:
+Saada praegu kehtivat ja eelmise iterationi ajal proposalist tõmmatud $\theta_{i-1}$ väärtust ***target distributionist***-st ja saada praegu tõmmatud väärtust praegu kehtiva väärtuse korral q() funktsiooni kohaselt.
+
+![Binomial Hastings 1](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/Binomial_Hastings1.png)
+
+
+  c. Kui $\alpha \geq 1$, siis paneme $\theta_i$ väärtuseks $\theta^*$. Kui $\alpha < 1$, siis muudame $\theta_i = \theta^*$ tõenäosusega $\alpha$, või muudame $\theta_i = \theta_{i-1}$ tõenäosusega $1-\alpha$. 
+
+Siin all pildil näeme kuidas samm c toimib:  
+    * Kui $\theta^*$ ehk proposed jaotus on fair, siis on $\alpha$ suurem kui 1 (1.574). Seega vahetame jaotust alati kui proposed jaotus on fair (samal ajal on igakord kui proposed jaotus on fair, praegune jaotus $\theta_{i-1}$ = loaded). Seega vahetame alati jaotust kui praegune jaotus on loaded.  
+    * Kui $\theta^*$ ehk proposed jaotus on loaded ehk praegune jaotus $\theta_{i-1}$ = fair, siis on $\alpha$ madalam kui 1 (.635) ning seega me vahetame jaotust ainult 63.5% kordadest ülejäänud kordadel jääme fair jaotuse juurde. 
+
+Seda saab väljendada antud diagrammiga. Siin tekibki olukord, kus simuleerime kahe oleku (fair/loaded) tõenäosusjaotust p() läbi nende esinemise hulga. Simulatsiooni parameetrid tulenevad: 1) saadud andmetest X = 2, 2) meie poolt valitud priorist ja 3) olekute esinemise tõenäosust omakorda mõjutavast ("parandavast") ***proposal distributioni**-i parameetritest. Luues sellise simulatsiooni saame algoritmi jooksutada ja siis hiljem üle lugeda mitu korda kehtis *fair* seisund ja mitu korda *loaded* seisund (saame leida nii tõenäosuse). Vaadates $\alpha$ väärtuseid ja sellest tulenevat diagrammi näeme, et *fair* seisund peaks esinema rohkem. See on ka loogiline, sest kui oleme saanud andmeteks x = 2, siis on väga tõenäoline, et tegelik seisund ongi *fair* ehk selle tõenäosus, $p(\theta=fair)$ on suurem.
+
+Maatriksi kirjeldus:
+
+esimene rida vastab praegune seisund \(\theta\)=fair ja teine rida praegune seisund  \(\theta\)=loaded ning esimene tulp vastab proposal seisund \(\theta\)=fair ning teine tulp vastab proposal seisund \(\theta\)=loaded. Seega read vastavad sellele, kust üleminek toimub ja tulbad kuhu üleminek toimub. Seega nt (1,1) liige on fairist-fairi; (1,2) fairist loadedisse; (2,1) loadedist fairi; (2,2) loadedist loadedisse.
+
+
+Kui me paneme meie ülemineku tõenäosused ehk tõenäosused, et mingi seisundi korral vahetame seisundit, maatriksisse, siis saame üleminekumaatriksi P. Kui leiame selle üleminekumaatriksi statsionaarse maatriksi siis on tulemuseks statsionaarse maatriks, kus mõlemast seisundist ülemineku tõenäosused on [.612, .388], mis on ka antud lihtsa binomiaalse näite puhul analüütiliselt leitav jaotus, sest leitud andmete x = 2 järgi on tõenäosus, et $\theta$ = loaded 38.8% ja tõenäosus, et $\theta$ = fair 61.2%. Saame kontrollida, et see ongi statsionaarne jaotus, sest statsionaarse jaotuse definitsioon on, et kui korrutame teda ülminekumaatriksiga, mille statsionaarne jaotus ta on, jääb jaotus samaks.
+
+![Binomial Hastings 2](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/Binomial_Hastings2.png)
+
+Sammud 2b ja 2c käituvad nagu kohandus, sest ***proposal distribution*** ei ole ***target distribution***. Kõigil ahela sammudel me tõmbame kandidaadi ja seejärel otsustame, kas "liigutada" ahel uude olekusse või jääda sinna, kus oleme. Kui kandidaadile liigutamine on "kasulik" ($\alpha \geq 1$), siis me "liigutame" ja kui see pole "kasulik", siis me võime siiski liigutada, aga seda tõenäosusega $\alpha$. Kuna meie otsus "liikuda" kandidaadile sõltub ainult sellest, kus ahel parajast on, on tegemist Markovi ahelaga.
+
+## Proposal distribution
+
+Üks hoolas valik, mille me peame tegema, on kadidaate tootva jaotuse $q(\theta^2|\theta_{i-1})$ osas. See võib, aga ei pea sõltuma eelneva iteratsiooni $\theta$ väärtusest. Üks näide, kus see ei sõltu eelnevast väärtusest, on siis kui $q(\theta^*)$ on alati samasugune jaotus. Kui me kasutame seda võimalust, siis peab $q(\theta)$ olema võimalikult sarnane $p(\theta)$-le ehk meie algse jaotusega, mida soovime üldse estimeerida, et leida sealt tõmbamise tõenäosuseid.
+
+Teine populaarne võimalus, mis ei sõltu eelnevast iteratsioonist, on **Random-Walk Metropolist-Hastings**. Siin on ***proposal distribution***-i keskpunkt $\theta_{i-1}$. Näiteks see võib olla normaaljaotus keskmisega $\theta_{i-1}$. Kuna normaaljaotus on sümmeetriline, siis on selle jaotuse eeliseks veel: $q(\theta^* \mid \theta_{i-1}) = q(\theta_{i-1} \mid \theta^*)$, mis tähendab, et see osa taandub ära $\alpha$-t arvutades. Seega **Random-Walk Metropolist-Hastings**-si puhul, kus kandidaat tõmmatakse normaaljaotusest keskmisega $\theta_{i-1}$ ja püsiva variatsiooniga, on **vastuvõtmise suhe** $\alpha = g(\theta^*) / g(\theta_{i-1})$
+
+## Acceptance rate
+
+Kuna kõiki tõmmatud kandidaate ei võeta vastu, siis jääb meie Markovi ahel mõnikord sinna, kus ta on. Võimalik, et mitmeks iteratsiooniks. See, kui tihti me tahame, et ahel kandidaate vastu võtaks, sõltub algoritmist, mida me kasutame. Kui me aproksimeerime $p(\theta)$-t $q(\theta^*)$-ga ja alati tõmbame kandidaate sealt, siis on kadidaatide sage vastu võtmine hea: see tähendab, et $q(\theta^*)$ aproksimeerib $p(\theta)$-d hästi. Samas tahame, et q-l oleks suurem variatsioon kui p-l ja tahame näha mõningaid kandidaatide tagasi lükkamisi, et olla kindlad, et q katab p ruumi hästi.
+
+Järgnevates näidetes näeme, et **Random-Walk Metropolis-Hastings** sampleri kõrge vastuvõtmise sagedus ei ole hea. Kui *random-walk* teeb liiga väikeseid samme, siis ta võtab tihti vastu, aga võtab väga kaua aega, et tervet posteriori (järeljaotus) täielikult läbi käia. Kui *random-walk* teeb liiga suuri samme, siis on paljudel ettepanekutel väikesed tõenäosused ja vastuvõtmise sagedus on madal, mis tähendab, et paljud tõmbed on raisatud. Ideaalis peaks *random-walk* vastu võtma kuskil 23% ja 50% kadidaatidest.
+
+# Lesson 4.3
+
+## Random walk with normal likelihood, t prior
+
+Ühes varasematest loengutest (vt anki) nägime andmeid, kus oli personalisuuruse protsentuaalne muutus eelmisest aastast käesolevasse aastasse n = 10 firma puhul. Me kasutasime ***normal likelihoodi*** koos keskväärtuse prioriga, millel on t jaotus ja teadaolev variatsioon. Seega $y_i$ näitab ühe firma töötajaskonna protsentuaalset muutumist ja on $\mu$-st sõltuva jaotusega
+
+$y_i \mid \mu \overset{iid}{\sim}N(\mu,1),\;\; i=1,..,n$
+
+ning $\mu$ on omakorda meie valitud prior jaotusega (t jaotus, sest valim väike?)
+
+$\mu \sim t(0,1,1)$
+
+, kus ***location parameter*** = 0, ***scale parameter*** = 1, ja ***degrees of freedom*** = 1.
+
+Nende 10 firma muutused on y=(1.2,1.4,−0.5,0.3,0.9,2.3,1.0,0.1,1.3,1.9). Kuna sellel mudelil puudub ***conjugate** jaotus, siis pole **järeljaotus** standardse vormiga ning sellest pole kerge valimit moodustada. Posterior valimite saamiseks paneme püsti Markovi ahela, mille statsionaarne jaotus on just see **järeljaotus**, mida me otsime. Tuletame meelde, et järeljaotus p(...) on proportsionaalne g(...)-ga:
+
+$p(\mu \mid y_1, \ldots, y_n) \propto \frac{\exp[ n ( \bar{y} \mu - \mu^2/2)]}{1 + \mu^2}$
+
+Järeljaotus vasakul on meie ***target distribution*** ja paremal olev avaldis on meie $g(\mu)$.
+
+Esimene asi, mida me R-is teha saame, on anda hinnang (**evaluate**) $g(\mu)$-le. Kuna järeljaotused üldiselt sisaldavad tõepärasid (mitme potentsiaalselt väikse numbri korrutised), võib $g(\mu)$ olla nii väike number, et ta on arvuti jaoks sisuliselt 0. See tekitab probleemi, kui me hakkame hindama ***acceptance ratio**-t $\alpha$. Selleks, et antud probleemi vältida, saame töötada log-skaalal, mis on arvutuslikult stabiilsem. Seega kirjutame funktsiooni, millega hinnata $g(\mu)$ asemel
+
+$\log(g(\mu)) = n ( \bar{y} \mu - \mu^2/2) - \log(1 + \mu^2)$
+
+```{r}
+#Loome funktsiooni, mis teeb g(...) funktsioonist logaritmilise funktsiooni. Funktsiooni lgaritm on tema avaldise logaritm. 
+lg = function(mu, n, ybar) {
+  mu2 = mu^2
+  n * (ybar * mu - mu2 / 2.0) - log(1 + mu2)
+}
+```
+
+Järgmisena kirjutame funktsiooni, mis paneb tööle Random-Walk Metropolis_hastings sämpleri normaaljaotuslike ***proposal***itega. Tuletame meelde valemit $\alpha = \frac{g(\theta^*) / q(\theta^* \mid \theta_{i-1}) }{g(\theta_{i-1}) / q(\theta_{i-1} \mid \theta^*)} = \frac{g(\theta^*)q(\theta_{i-1} \mid \theta^*)}{g(\theta_{i-1})q(\theta^* \mid \theta_{i-1})}$
+
+```{r}
+## Random-Walk Metropolis-Hastings algorithm, mis võtab sisendina n = valimi suurus, ybar = ehk kogutud andmete keskmine, n_iter = iteratsioonide arv, mu_init = algne mu väärtus, cand_sd = kandidaate tootva q(...) jaotuse standardhälve 
+
+mh = function(n, ybar, n_iter, mu_init, cand_sd) {
+  
+  ## step 1, initialize
+  mu_out = numeric(n_iter) #väljundiks saame n_iter koguse mu-sid
+  accpt = 0 #selleks, et näha kui palju mu proposale vastu võetakse loome selle tunnuse, mis on alguses väärtusega 0
+  mu_now = mu_init #see on "praegune" (pärast updatei) mu väärtus (esialgu on see mu_init algne väärtus)
+  lg_now = lg(mu=mu_now, n=n, ybar=ybar) #samuti update'ime pidevalt g() (siinkohal log of g()) väärtust vastavalt käesolevale mu väärtusele (ja valimi suurusele ning andmetele ybar)
+  
+  ## step 2, iterate
+  for (i in 1:n_iter) {
+    ## step 2a
+    mu_cand = rnorm(n=1, mean=mu_now, sd=cand_sd) # draw a candidate
+    
+    ## step 2b. Kuna meie proposal distribution on normaaljaotus, mis on sümmeetriline, siis on q(...) funktsiooniga jaotuses kõigi tõmmete tõenäosus sama (vt ülevalt proposal distribution ja Random-Walk Metropolis-Hastings) ja see tähendab, et valemis taanduvad joone peal ja joone all q(...) tingimuslikud jaotused ära ja alpha väärtus ehk acceptance ratio on ainult kandidaadi ja praeguse oleku punktides g() funktsiooni hinnangute suhe. Siinkohal küll g() funktsiooni logaritmi arvutusliku stabiilsuse huvides
+    lg_cand = lg(mu=mu_cand, n=n, ybar=ybar) # evaluate log of g with the candidate
+    lalpha = lg_cand - lg_now # log of acceptance ratio
+    alpha = exp(lalpha) #kuna oleme kasutanud logaritmilist skaalat, siis võtame alphast eksponendi.
+    
+    ## step 2c
+    u = runif(1) # draw a uniform variable which will be less than alpha with probability min(1, alpha). Sest kui meil on uniform jaotus 0st-1ni siis on kõigi väärtuste tõmbamine ühe tõenäoline. Mis on tõenäosus saada väikesemat väärtust kui 0,5? 50%, väiksemat kui 0.4? 40%. Seega väiksemat kui alpha alpha*100%. Sellega viimegi läbi sammu, kus tingimuslikult võtame kandidaadi vastu tõenäosusega alpha, sest u-d, mis on väiksem kui alpha saada tõenäosus on alpha. Kui alpha on suurem kui 1, siis on u alati väiksem, mis tähendab, et võtame alati vastu
+    if (u < alpha) { # then accept the candidate
+      mu_now = mu_cand #praegune mu väärtus muudetakse kandidaadiks
+      accpt = accpt + 1 # to keep track of acceptance
+      lg_now = lg_cand #muudame ka praeguse lg ära.
+    }
+    
+    ## collect results
+    mu_out[i] = mu_now # save this iteration's value of mu. Kui väärtus jääb samaks, siis saab i-ndaks väärtuseks sama mu väärtus, kui muutub, siis uus väärtus.
+  }
+  
+  ## return a list of output
+  list(mu=mu_out, accpt=accpt/n_iter)
+}
+```
+
+Siis paneme püsti probleemi. 
+
+Kõige pealt teeme histogrammi andmetest ja meie t jaotusega priorist. Näeme sealt, et andmete kese on 1 ja 2 vahel, aga prior näitab justkui, et enamus andmeid langeb 0 ümber (loogiline, sest tegemist on t jaotusega, mille location on 0 ja sd 1). Andmete ja priori erinevuse põhjal eeldame, et posterior jaotus peaks tegema komporomissi nende vahel ja leidma, et kõige tõenäolisemalt langeb andmete kese ehk andmete põhimass, mis väljendub $\mu$ parameetris, nende kahe ettepaneku vahele
+
+```{r}
+y = c(1.2, 1.4, -0.5, 0.3, 0.9, 2.3, 1.0, 0.1, 1.3, 1.9)
+ybar = mean(y)
+n = length(y)
+hist(y, freq=FALSE, xlim=c(-1.0, 3.0)) # histogram of the data
+curve(dt(x=x, df=1), lty=2, add=TRUE) # prior for mu (x=x on argumendi puudumine pmtslt, annab generic jaotuse)
+points(y, rep(0,n), pch=1) # individual data points
+points(ybar, 0, pch=19) # sample mean
+```
+
+Viimaks jooksutame sämplerit. Kasutame m = 1000 iteratsiooni ja ***proposal*** standard deviationi (mis hoiab ***proposal*** step size'i kontrolli all) 3.0, ja algset väärtust eeljaotuse mediaai 0 juures.
+
+```{r}
+set.seed(43) # set the random seed for reproducibility
+post = mh(n=n, ybar=ybar, n_iter=1e3, mu_init=0.0, cand_sd=3.0) #anname üleval loodud funktsioonile argumendid
+str(post) #annab objekti (siinkohal list) sees olevad andmed
+```
+
+```{r}
+library("coda")
+traceplot(as.mcmc(post$mu)) #peame post muutuja tegema mcmc objektiks
+```
+
+See plot on **trace plot** ja näitab markovi ahela ajalugu ja annab *feedbacki** selle kohta, kas ahel on jõudnud oma **statsionaarsesse jaotusesse**. 
+
+Tundub, et meie ***proposal step*** oli liiga suur (vastuvõtmise suhteline sagedus on alla 23%, mis on näha post listis  salvestatud accpt rate = 12.2%). Step tuleb sellest, kuidas määrame meie ***proposal jaotuse*** standardhälbe. Arvan ise, et kui standardhälve on suur, siis on soovitatud $\mu$ väärtuste "tõenäosuste" (g() jaotuses) suhe liiga tihti üle ühe ja samal ajal on ka liiga tihti vahe praeguse ja kandidaat $\mu$ tõenäosuse (g() funktsiooni järgse) vahel nii suur, et alpha ehk vastu võtmise % ehk ***acceptance rate*** on madal (näha ka, et $\mu$ väärtus jääb pikalt samaks mingites vahemikes, kus on flat joon). Seega proovime teistsugust proposal jaotuse standardhälvet.
+
+```{r}
+post = mh(n=n, ybar=ybar, n_iter=1e3, mu_init=0.0, cand_sd=0.05)
+post$accpt
+```
+
+Siit näeme, et acceptance rate on 94.6%. Tuleb ilmselt sellest, et alati on $\mu$ väärtuste tõenäosused (g() jaotuses) väga ühesugused ja seega kui suhe on alla 1, siis on ta peaaegu alati ikkagi 1e lähedal (sest kandidaadi tõenäosus on tihti väga lähedal praeguse väärtuse tõenäosusele, sest sd on väike ja praegune $\mu$ on proposal jaotuse, kust tõmbame $\mu$-sid keskmine ka parajasti), seega on ka alpha väärtus 1e lähedal 90% ümber ning vastuvõtu % väga kõrge. Samas tähendab see, nagu ka alt graafikult näeme, et $\mu$ väärtused muutuvad väga väikeste intervallidega ja seega kulub väga kaua aega, et algoritm kõik antud jaouses olevad $\mu$ väärtused läbi käiks ja lõpuks leiaks need õiged väärtused, mis on üõldiselt siis kõige tõenäolisemad, mille ümbert enam algoritm ära üldse ei lähe ja seal convergeib. Tihti leiab lokaalseid ümbritsemispunkte vbla ainult, nagu 200 iterationi juures, kuid natuke on juba näha ka convergeimist lõpus, kus $\mu$ liigub suht kiirelt tagasi sinna 0.5 juurde kui liiga kaugele hakkab minema .
+
+```{r}
+traceplot(as.mcmc(post$mu))
+```
+
+Nüüd on vastuvõtmise suhteline sagedus liiga kõrge (üle 50%). Proovime nüüd midagi vahepealset. Eesmärk on Random-Walk Metropolis hastingi puhul 23%-50%
+
+```{r}
+post = mh(n=n, ybar=ybar, n_iter=1e3, mu_init=0.0, cand_sd=0.9)
+post$accpt
+```
+
+```{r}
+traceplot(as.mcmc(post$mu))
+```
+
+See tundub päris hea. Lihtsalt lõbu pärast vaatame, mis saab kui alustame ahelat mingist väga kaugest väärtusest
+
+```{r}
+post = mh(n=n, ybar=ybar, n_iter=1e3, mu_init=30.0, cand_sd=0.9)
+post$accpt
+```
+
+```{r}
+traceplot(as.mcmc(post$mu))
+```
+
+Nagu näha siin üleval, läks aega, et leida **statsionaarne jaotus**, aga me jõudsime selleni. Kui me jätame esimsed 100 vms väärtust välja, siis tundub, et ülejäänud valimid tulevad statsionaarsest jaotusest ehk meie **järeljaotusest**!!! 
+
+Nüüd paneme graafikule järeljaotuse tiheduse ja eeljaotuse, et näha, kuidas andmed meie uskumusi $\mu$ kohta muutsid
+
+```{r}
+post$mu_keep = post$mu[-c(1:100)] # discard the first 100 samples ja lisama oma post listi uue objekti mu_keep
+plot(density(post$mu_keep, adjust=2.0), main="", xlim=c(-1.0, 3.0), xlab=expression(mu)) # plot density estimate of the posterior
+curve(dt(x=x, df=1), lty=2, add=TRUE) # prior for mu
+points(ybar, 0, pch=19) # sample mean
+
+curve(0.017*exp(lg(mu=x, n=n, ybar=ybar)), from=-1.0, to=3.0, add=TRUE, col="blue") # approximation to the true posterior in blue
+```
+
+Siin plotil on must joon keskmisega, kus meie 0.9 proposal sd-ga Hastings algoritm convergeis ja on näha ,et algoritmist saadud $\mu$ väärtused on enamasti selle convergeimis punkti ümber suuremas osas. Seega simuleeriski algoritm (mille proposal jaotus tekitab convergence'it selliselt, et saadav jaotus jääks andmete ja priori vahele) meile post listis asuva $\mu$ väärtuste vektori, mis defineerib posterior jaotuse, mis põhineb andmetel ja prioril.
+
+Need tulemused on julgustavad, kuid väga algsed. Me peame siiski veel formaalselt uurima, kas meie Markovi ahel on jõudnud statsionaarsesse jaotusesse. Seda uurime järgmistes osades.
+
+Metropolis-Hastingsi kasutamine valimite saamiseks võtab aega ja nõuab peenhäälestust nagu me nägime. Hea on see, et me saame lasta tarkvaral enamus tööd ära teha. Järgmistest videotes kasutame programmi, mis teeb järeljaotustest valimite võtmise kergeks.

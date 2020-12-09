@@ -135,6 +135,22 @@ for (i in 2:n) {
 
 table(x)/n
 
-vec <- c(0, 1)
+vec <- c(1, 0)
 
-vec %*% Q %*% Q
+vec %*% Q %*% Q %*% Q
+  
+vec %*% Q
+
+W = matrix(c(.365, .635, 
+             1, 0), 
+           nrow=2, byrow=TRUE)
+
+W30 = W
+
+for (i in 2:30) {
+  W30 = W30 %*% W
+}
+
+round(W30, 3)
+
+install.packages("rjags")

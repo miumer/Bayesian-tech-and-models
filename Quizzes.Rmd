@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+#WEEK 1 QUIZZ
 
 # Quesstion 1
 
@@ -63,7 +64,7 @@ mean( alpha > 1.0 )
 
 Use a (large) Monte Carlo sample to approximate the 0.3 quantile of the standard normal distribution (\(\text{N}(0,1)\), the number such that the probability of being less than it is 0.3.
 
-Use the quantile function in R. You can of course check your answer using the qnormfunction.
+Use the quantile function in R. You can of course check your answer using the qnorm function.
 
 ## Answer 2
 
@@ -86,5 +87,205 @@ What does the standard error of our Monte Carlo estimate become if we increase o
 sqrt(5.2/5000)
 ```
   
+# WEEK 1 HONORS
+
+## Question 1
+
+
+Three friends take turns playing chess with the following rules: the player who sits out the current round plays against the winner in the next round. Player A, who has 0.7 probability of winning any game regardless of opponent, keeps track of whether he plays in game tt with an indicator variable $X_t$
+ 
+
+What is the transition probability matrix for the chess example? The first row and column correspond to X=0 (player A not playing) while the second row and column correspond to X=1 (player A playing).
+
+## Answer 1
+
+```{r, echo = FALSE}
+matrix(c(0.0, 1, 
+             0.3, 0.7), 
+             nrow=2, byrow=TRUE)
+```
+Sellepärast, et esimene rida tähistab algset mitte mängimist ja  esimese rea esimene tulp tähistab järgmises mängus mitte mängimist (0%) ja esimese rea teine tulp tähendab järgmises mängus mängimist (100%). Teine rida tähistab algses mängus mmängimist ja teise rea esimene tulp järgmises mängus mitte-mängimist (30%) ja teise rea teine tulp järgmises mängus mängimist (70%)
+
+
+## Question 2
+
+Continuing the chess example, suppose that the first game is between Players B and C. What is the probability that Player A will play in Game 4? Round your answer to two decimal places.
+
+## Answer 2
+
+Kuna teame, et esimeses mängus Player A ei mänginud, siis tuleb kogu arvutuse ajal vaadata esimest rida, sest see paneb paika algse seisundi tõenäosused (0%, et järgmises mängus EI MÄNGI ja 100%, et järgmises mängus MÄNGIB). Seejärel tuleb korrutada üleval leitud ülemineku maatrikse
+
+```{r, echo = FALSE}
+matrix(c(0.0, 1, 
+             0.3, 0.7), 
+             nrow=2, byrow=TRUE)
+```
+
+nii palju kordi, kui möödub ajaühikuid: selleks, et algaks 4s mäng, peab mööduma 3 ajaühikut
+
+```{r}
+Q = matrix(c(0.0, 1, 
+             0.3, 0.7), 
+             nrow=2, byrow=TRUE)
+
+Q %*% Q %*% Q
+```
+Ning kuna me peame vaatama esimest rida, sest just see märgib algset seisundit (ei mänginud) ja teist tulpa, sest see märgib seisundit, mille tõenäosust otsime (mängib), siis ongi tõenäosus 0.79. Tõenäosus, et Player 1 4das mängus ei mängi on seejuures 0.21.
+
+# WEEK 2 Quizz 1: Metropolis Hastings random walk algorithm
+
+## Question 1
+
+In which situation would we choose to use a Metropolis-Hastings (or any MCMC) sampler rather than straightforward Monte Carlo sampling?
+
+## Answer 1
+
+Juhul kui ei ole lihtsat viisi sõltumatute tõmmete tegemiseks eesmärkjaotusest (target distribution). Kui me saaks seda teha, siis oleks tavaline Monte Carlo sampling eelistatud
+
+English:
+
+There is no easy way to simulate independent draws from the target distribution. If we could, straightforward Monte Carlo sampling would be preferable.
+
+## Question 2
+
+Which of the following candidate-generating distributions would be best for an independent Metropolis-Hastings algorithm to sample the target distribution whose PDF is shown below?
+
+Note: In independent Metropolis-Hastings, the candidate-generating distribution q does not depend on the previous iteration of the chain.
+
+! [Alt text](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/quizz1_week2_q2.png)
+
+# Answer 2
+
+q=Gamma(3.0,0.27)
+
+! [Alt text](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/quizz1_week2_a2.png)
+
+Kandidaate loov jaotus on ligilähedane eesmärkjaotusele ja tal on isegi mõneti suurem dispersioon
+
+# Question 3
+
+If we employed an independent Metropolis-Hastings algorithm (in which the candidate-generating distribution q does not depend on the previous iteration of the chain), what would happen if we skipped the acceptance ratio step and always accepted candidate draws?
+
+# Answer 3
+
+Tegemist oleks Monte Carlo simulatsiooniga jaotusest q ja mitte eesmärkjaotusest, sest kõigi kandidaatide vastuvõtmine tähendab lihtsalt, et me simuleerime väärtuseid kandidaate loovast jaotusest. Vastu võtmise samm on nagu parandus, et valimid peegelaks eesmärkjaotust rohkem kui kandidaate loovat jaotust.
+
+English
+
+The resulting sample would be a Monte Carlo simulation from q instead of from the target distribution.
+
+Accepting all candidates just means we are simulating from the candidate-generating distribution. The acceptance step in the algorithm acts as a correction, so that the samples reflect the target distribution more than the candidate-generating distribution
+
+# Question 4
+
+If the target distribution $p(\theta) \propto g(\theta)$ is for a positive-valued random variable so that $p(\theta)$ contains the indicator function $I_{\theta > \theta}(\theta)$
+
+what would happen if a random walk Metropolis sampler proposed the candidate $\theta^* = -0.3$
+
+# Answer 4
+
+Kandidaat lükatakse tagasi tõenäosusega 1, sest $g(\theta^*)=0$, mis annab vastuvõtmise suhteks (acceptance ratio) $\alpha = 0$. See strateegia töötab tavaliselt, kuid mõnikord tekivad probleemid. Teine võimalus on tõmmata kandidaate $\theta$ logaritmist (millele on muidugi teistsugune eesmärkjaotus, mille peab ise tuletama) kasutades normaaljaotuslikke pakkumisi.
+
+English: 
+
+The candidate would be rejected with probability 1 because $g(\theta^*) = 0$ yielding an acceptance ratio $\alpha = 0$,
+
+This strategy usually works, but sometimes runs into problems. Another solution is to draw candidates for the logarithm of $\theta$ (which of course has a different target distribution that you must derive) using normal proposals.
+
+## Question 5
+
+Suppose we use a random walk Metropolis sampler with normal proposals (centered on the current value of the chain) to sample from the target distribution whose PDF is shown below. The chain is currently at $\theta_{i}$ = 15.0θ Which of the other points, if used as a candidate $\theta^*$ for the next step, would yield the largest acceptance ratio $\alpha$?
+
+! [Alt text](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/quizz1_week2_q5.png)
+
+## Answer 5
+
+B) $\theta$ =9.8
+
+Kuna B on ainuke punkt, mille eesmärkjaotuse tihedusväärtus (0.09 lähedal) on kõrgem kui $\theta_i$ (0.04 lähedal).
+
+Kuna tegemist on random walk Metropolis sampleriga, millel on sümmeetriline ettepanekute jaotus, siis on valem vastuvõtusuhte i+1 arvutamiseks $\alpha = g(\theta^*) / g(\theta_i)$. B juhtumi puhul oleks $\alpha$ 2 lähedal, samal ajal kui A, C ja D puhul on meil $\alpha < 1$. Kui kandidaadiks satuks punkt B, siis see võetaks vastu.
+
+
+English:
+
+B is the only point with a target density value (close to 0.09) higher than that of $\theta_i$ (close to 0.04).
+
+Since this is a random walk Metropolis sampler with symmetric proposal distribution, the expression for calculating the acceptance ratio for iteration i+1 is $\alpha = g(\theta^*) / g(\theta_i)$. In this case $\alpha$ would be close to 2, whereas for A, C, and D, we have $\alpha < 1$. If point B were proposed, it would be accepted in this case.
+
+## Question 6
+
+Suppose you are using a random walk Metropolis sampler with normal proposals. After sampling the chain for 1000 iterations, you notice that the acceptance rate for the candidate draws is only 0.02. Which corrective action is most likely to help you approach a better acceptance rate (between 0.23 and 0.50)?
+
+## Asnwer 6
+
+Alanda ettepanekute jaotuse q variatsiooni, kuna madal vastuvõtmise tase Metropolis sampleri juhusliku kõnni puhul tähendab tavaliselt, et kandidaate loov jaotus on liiga lai ja pakub tõmbeid, mis on liiga kaugel eesmärgiks olevast masspiirkonnast eesmärkjaotuses.
+
+English: 
+
+Decrease the variance of the normal proposal distribution q.
+
+A low acceptance rate in a random walk Metropolis sampler usually indicates that the candidate-generating distribution is too wide and is proposing draws too far away from most of the target mass.
+
+## Question 7
+
+Suppose we use a random walk Metropolis sampler to sample from the target distribution $p(\theta) \propto g(\theta)$ and propose candidates $\theta^*$ 
+using the $\text{Unif}( \theta_{i-1} - \epsilon, \, \theta_{i-1} + \epsilon)$ distribution where $\epsilon$ is some positive number and $\theta_{i-1}$ is the previous iteration's value of the chain. What is the correct expression for calculating the acceptance ratio $\alpha$ in this scenario?
+
+Hint: Notice that the $\text{Unif}( \theta_{i-1} - \epsilon, \, \theta_{i-1} + \epsilon)$ distribution is centered on the previous value and is symmetric (since the PDF is flat and extends the same distance $\epsilon$ on either side).
+
+## Answer 7
+
+$\alpha = \frac{g(\theta^*)}{g(\theta_{i-1})}$
+
+Kuna ettepanekute jaotus on eelmise väärtuse ümber sümmeetriline, siis kaob q hindamine $\alpha$ arvutamisel ära.
+
+English: 
+
+Since the proposal distribution is centered on the previous value and is symmetric, evaluations of q drop from the calculation of $\alphaα$
+ 
+## Question 8
+
+The following code completes one iteration of an algorithm to simulate a chain whose stationary distribution is $p(\theta)$ $\propto g(\theta)$. Which algorithm is employed here?
+
+```{r eval=FALSE}
+ # draw candidate
+  theta_cand = rnorm(n=1, mean=0.0, sd=10.0)
+
+# evaluate log of g with the candidate
+  lg_cand = lg(theta=theta_cand)
+  
+# evaluate log of g at the current value
+  lg_now = lg(theta=theta_now)
+  
+# evaluate log of q at candidate
+  lq_cand = dnorm(theta_cand, mean=0.0, sd=10.0, log=TRUE)
+  
+# evaluate log of q at the current value
+  lq_now = dnorm(theta_now, mean=0.0, sd=10.0, log=TRUE)
+
+# calculate the acceptance ratio
+  lalpha = lg_cand + lq_now - lg_now - lq_cand 
+  alpha = exp(lalpha)
+  
+# draw a uniform variable which will be less than alpha with probability min(1, alpha)
+  u = runif(1)
+  
+  if (u < alpha) { # then accept the candidate
+    theta_now = theta_cand
+    accpt = accpt + 1 # to keep track of acceptance
+  } " 
+
+```
+
+## Answer 8
+
+Sõltumatu Metropolis-Hastings (q ei sõltu eelmisest väärtusest ketis) normaaljaotusliku ettepaneku jaotus. Kandidaate tõmmatakse alati samast N(0,$10^2$) jaotusest.
+
+English:
+
+Independent Metropolis-Hastings (q does not condition on the previous value of the chain)with normal proposal
+
+Candidates are always drawn from the same $\text{N}(0, 10^2)$
 
 

@@ -1,0 +1,53 @@
+---
+title: 'Lesson 5: Gibbs sampling'
+author: "Siim Põldre"
+date: "9 12 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lesson 5.1
+
+Siiani oleme demonstreerinud MCMC algoritmi ühe parameetri jaoks. Kui me otsime järeljaotust (*posterior distribution*) aga mitme parameetri jaoks ja sellel posterior jaotusel pole standardvormi, siis on üheks võimaluseks kasutada Metropolis-Hastings (M-H)-d, et valida kandidaate kõigi parameetrite jaoks korraga ning nad vastuvõtta või tagasilükata korraga. See on küll võimalik, aga võib osutuda keeruliseks. Lihtsam on neid parameetreid valida ükshaaval.
+
+Lihtsa näitena: oletame, et meil on kahe parameetri $\theta$ ja $\phi$ ühine posteriorjaotus: $p(\theta, \, \phi |y) \propto g(\theta, \phi)$. Kui me teame $\phi$ väärtust, siis me saame tõmmata kandidaadi $\theta$ jaoks ja kasutada $g(\theta, \phi)$-d, et arvutada oma Metropolis-Hastings suhe (*Metropolis-Hastings ratio*), ning võimalik, et vastu võtta kandidaat. Enne järgmise kandidaadi juurde liikumist, kui me ei tea $\phi$ väärtust, saame läbiviia sarnase update'i selle jaoks. Saame tõmmata kandidaadi $\phi$ jaoks, kasutades mingit ettepanekujaotust (*proposal distribution*) ning kasutada uuesti $g(\theta, \phi)$-t, et arvutada oma Metropolis-Hastings suhe. Siin me teeskleme, et me teame $\theta$ väärtust, asendades selle käesoleva iteratsiooni pool saadud väärtusega Markovi ahelas. Kui me oleme tõmmanud kandidaadi nii $\theta$ kui ka $\phi$ jaoks, lõppeb üks iteratsioon ja me alustame järgmist iteratsiooni, valides uus $\theta$. Teisisõnu, me uuendame parameetreied vaheldumisi, ükshaaval, pannes käesoleva väärtuse teiseks parameetriks funktsioonis $g(\theta, \phi$).
+
+Sea vaheldumisi uuendamist (*one-at-a-time updating*) nimetatakse Gibbsi valimite moodustamiseks (*Gibbs sampling*), mis annab meile ka statsionaarse Markovi ahela, mille statsionaarne jaotus on järeljaotus. 
+
+### Täielikud tingimuslikud jaotused (*Full conditional distribution*) 
+
+Enne kui kirjeldame täielikku Gibbsi valimite algoritmi, saame kasutada tõenäosuse ketireeglid (*chain rule of probability*), $p(\theta, \phi \mid y) = p(\theta \mid \phi, y) \cdot p(\phi \mid y)$. Pane tähele, et ainus vahe $p(\theta, \phi \mid y)$ ja $p(\theta \mid \phi, y)$ vahel on korrutamine faktoriga, mis ei sisalda $\theta$ väärtust. Sellest lähtuvalt võib öelda, et $g(\theta,\phi)$ funktsioon, **vaadatuna $\theta$ funktsioonina**, on proportsionaalne mõlema funktsiooniga  $p(\theta, \phi \mid y)$ ja $p(\theta \mid \phi, y)$ (kuna $(\phi \mid y)$ ei sisalda $\theta$ väärtust, siis ta on konstant $\theta$ funktsiooni mõttes) ja me võime ta samahästi asendada $p(\theta \mid \phi, y)$ väärtusega, kui update'ime $\theta$ väärtust. 
+
+Seda jaotust  $p(\theta \mid \phi, y)$ kutsutakse ka $\theta$ täielikuks tingimuslikuks jaotuseks (*full conditional distribution*). Miks kasutada seda $g(\theta,\phi)$ asemel? Sellepärast, et mõnikord on täielikud tingimuslikud jaotused standardsed jaotused, millest me oskame valimeid moodustada. Kui see juhtub, siis meil pole vaja tõmmata kandidaate ja otsustada, kas võtta vastu. Saame kasutada täielikku tingimuslikku jaotust ettepanekujaotusena, kus Metropolis-Hasting tõenäosus saab 1-ks. 
+
+Gibbsi valijad nõuavad natuke rohkem eeltööd, kuna peab leidma täielikud tingimuslikud jaotused kõigi parameetrite jaoks.Hea on see, et kõigil täielikele jaotusel on sama algpunkt: täielik ühine järeljaotus. Üleval oleva näite puhul:
+
+$p(\theta \mid \phi, y) \propto p(\theta, \phi \mid y)$
+
+, kus me võtame $\phi$-d kui teada olevat numbrit. Samuti on teine täielik tingimuslik jaotus $p(\phi \mid \theta, y) \propto p(\theta, \phi \mid y)$, kus me võtame $\theta$-t kui teada olevat numbrit. Me alustame alati täielikust järeljaotusest. Seega on täielike tingimuslike jaotuste leidmise protsess sama, mis iga parameetri järeljaotuse leidmine. Me teeskleme, et kõik teised parameetrid on teada. 
+
+## Gibbsi valija (*Gibbs sampler*)
+
+Gibbsi valimite mooodustamise mõte on, et me saame mitut parameetrit uuendada, moodustades ainult ühe parameetri valimeid korrada, minnes nii läbi kõigist parameetritest tsüklina, mis kordub. Selleks, et uuendada mingit kindlat parameetrit, asendame me käesolevad väärtused teiste parameetritega. 
+
+Siin on algoritm: Kui meil on ühine posterior jaotus $p(\theta,\,\phi|y)$ kahe parameetri $\theta$ ja $\phi$ jaoks, siis kui me leiame jaotuse iga parameetri jaoks eraldi, nt $p(\theta \mid \phi, y)$  ja $p(\phi \mid \theta, y)$, siis saame kordamööda moodustada valimeid nii:
+
+1. Valime algsed $\theta_0$ ja $\phi_0$ (*Initialize*)
+2. iga i = 1,...,m kohta, kordame:  
+     a. Kasutades $\phi_{i-1}$, tõmbame $\theta_i$ jaotusest $p(\theta \mid \phi = \phi_{i-1}, y)$ 
+     b. Kasutades $\theta_i$, tõmbame $\phi_i$ jaotusest $p(\phi \mid \theta = \theta_i, y)$
+     
+Nii saame $(\theta_1, \phi_i)$ paarid. Koos on samm 1 ja samm 2 üks täielik tsükkel Gibbs samplerist ning toodavad tõmbed $(\theta_i,\phi_i)$ jaoks ühe MCMC sampleri iteratsiooniga. Kui parameetreid on rohkem kui kaks, siis sisaldaks üks Gibbsi tsükkel iga parameetri uuendust.
+
+## Lesson 5.2 Normaaljaotuslik likelihood, teadmata keskmine ja variatsioon.
+
+TUlles tagasi näite juurde Lesson 2 lõpus, kus meil on normaaljaotuslik likelihood teadmata keskmise ja variatsiooniga, siis on meie mudel
+
+$\begin{align}y_i \mid \mu, \sigma^2 &\overset{\text{iid}}{\sim} \text{N} ( \mu, \sigma^2 ), \quad i=1,\ldots,n \\ \mu &\sim \text{N}(\mu_0, \sigma_0^2) \\ \sigma^2 &\sim \text{IG}(\nu_0, \beta_0)  \, .\end{align}$
+
+Me valime normaaljaotusliku eeljaotuse $\mu$ jaoks kuna juhtudel, kus $\sigma^@$ on teda, on normaaljaotus vastav jaotus (*conjugate prior*) $\mu$-le. Samuti, juhtudel, kus $\mu$ on teada, on inverse-gamma jaotus $\sigma^2$ vastav jaotus (*conjugate prior*). See annab meile sobiva 
+
+
