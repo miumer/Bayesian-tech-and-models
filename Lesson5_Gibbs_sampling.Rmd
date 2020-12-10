@@ -48,6 +48,14 @@ TUlles tagasi näite juurde Lesson 2 lõpus, kus meil on normaaljaotuslik likeli
 
 $\begin{align}y_i \mid \mu, \sigma^2 &\overset{\text{iid}}{\sim} \text{N} ( \mu, \sigma^2 ), \quad i=1,\ldots,n \\ \mu &\sim \text{N}(\mu_0, \sigma_0^2) \\ \sigma^2 &\sim \text{IG}(\nu_0, \beta_0)  \, .\end{align}$
 
-Me valime normaaljaotusliku eeljaotuse $\mu$ jaoks kuna juhtudel, kus $\sigma^@$ on teda, on normaaljaotus vastav jaotus (*conjugate prior*) $\mu$-le. Samuti, juhtudel, kus $\mu$ on teada, on inverse-gamma jaotus $\sigma^2$ vastav jaotus (*conjugate prior*). See annab meile sobiva 
+Me valime normaaljaotusliku eeljaotuse $\mu$ jaoks kuna juhtudel, kus $\sigma^@$ on teda, on normaaljaotus vastav jaotus (*conjugate prior*) $\mu$-le. Samuti, juhtudel, kus $\mu$ on teada, on inverse-gamma jaotus $\sigma^2$ vastav jaotus (*conjugate prior*). See annab meile mugava täieliku tingimusliku jaotuse Gibbs sampleri jaoks.
+
+Kõigepealt selgitame välja täieliku posterior jaotuse vormi. Kui me hakkame andmeid analüüsima alguses, siis JAGS tarkvara teeb selle sammu meie eest ära. Kuid on äärmiselt oluline näha ja arusaada, kuidas see samm käib:
+
+$\begin{align}p( \mu, \sigma^2 \mid y_1, y_2, \ldots, y_n ) &\propto p(y_1, y_2, \ldots, y_n \mid \mu, \sigma^2) p(\mu) p(\sigma^2) \\  &= \prod_{i=1}^n \text{N} ( y_i \mid \mu, \sigma^2 ) \times \text{N}( \mu \mid \mu_0, \sigma_0^2) \times \text{IG}(\sigma^2 \mid \nu_0, \beta_0) \\ &= \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}}\exp \left[ -\frac{(y_i - \mu)^2}{2\sigma^2} \right] \times \frac{1}{\sqrt{2\pi\sigma_0^2}} \exp \left[ -\frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right] \times \frac{\beta_0^{\nu_0}}{\Gamma(\nu_0)}(\sigma^2)^{-(\nu_0 + 1)} \exp \left[ -\frac{\beta_0}{\sigma^2} \right] I_{\sigma^2 > 0}(\sigma^2) \\ &\propto (\sigma^2)^{-n/2} \exp \left[ -\frac{\sum_{i=1}^n (y_i - \mu)^2}{2\sigma^2} \right] \exp \left[ -\frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right] (\sigma^2)^{-(\nu_0 + 1)} \exp \left[ -\frac{\beta_0}{\sigma^2} \right] I_{\sigma^2 > 0}(\sigma^2) \end{align}$
+
+, kus me sisuliselt taandame konstandid ära ja saame õige likelihoodi. Järgmiseks pole raske leida täielikku tingimuslikku jaotust. Kõigepealt vaatame $\mu$ täielikku tingimuslikku jaotust, kus eeldame, et $\sigma^2$ on teada (seljuhul muutub ta konstandiks, mis saab osaks normaliseerivast konstandist (*gets absorbed into the normalizing constant*)). See tähendab omakorda, et võime avaldisi, kus $sigma^2$ on, eirata:
+
+$\begin{align} p(\mu \mid \sigma^2, y_1, \ldots, y_n) &\propto p( \mu, \sigma^2 \mid y_1, \ldots, y_n ) \\ &\propto \exp \left[ -\frac{\sum_{i=1}^n (y_i - \mu)^2}{2\sigma^2} \right] \exp \left[ -\frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right] \\ &\propto \exp \left[ -\frac{1}{2} \left( \frac{ \sum_{i=1}^n (y_i - \mu)^2}{2\sigma^2} + \frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right) \right] \\ &\propto \text{N} \left( \mu \mid \frac{n\bar{y}/\sigma^2 + \mu_0/\sigma_0^2}{n/\sigma^2 + 1/\sigma_0^2}, \, \frac{1}{n/\sigma^2 + 1/\sigma_0^2} \right) \, , \end {align}$
 
 
