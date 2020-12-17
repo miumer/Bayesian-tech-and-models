@@ -19,11 +19,11 @@ Sea vaheldumisi uuendamist (*one-at-a-time updating*) nimetatakse Gibbsi valimit
 
 ### Täielikud tingimuslikud jaotused (*Full conditional distribution*) 
 
-Enne kui kirjeldame täielikku Gibbsi valimite algoritmi, saame kasutada tõenäosuse ketireeglid (*chain rule of probability*), $p(\theta, \phi \mid y) = p(\theta \mid \phi, y) \cdot p(\phi \mid y)$. Pane tähele, et ainus vahe $p(\theta, \phi \mid y)$ ja $p(\theta \mid \phi, y)$ vahel on korrutamine faktoriga, mis ei sisalda $\theta$ väärtust. Sellest lähtuvalt võib öelda, et $g(\theta,\phi)$ funktsioon, **vaadatuna $\theta$ funktsioonina**, on proportsionaalne mõlema funktsiooniga  $p(\theta, \phi \mid y)$ ja $p(\theta \mid \phi, y)$ (kuna $(\phi \mid y)$ ei sisalda $\theta$ väärtust, siis ta on konstant $\theta$ funktsiooni mõttes) ja me võime ta samahästi asendada $p(\theta \mid \phi, y)$ väärtusega, kui update'ime $\theta$ väärtust. 
+Enne kui kirjeldame täielikku Gibbsi valimite algoritmi, saame kasutada tõenäosuse ketireeglit (*chain rule of probability*), $p(\theta, \phi \mid y) = p(\theta \mid \phi, y) \cdot p(\phi \mid y)$. Pane tähele, et ainus vahe $p(\theta, \phi \mid y)$ ja $p(\theta \mid \phi, y)$ vahel on korrutamine faktoriga, mis ei sisalda $\theta$ väärtust. Sellest lähtuvalt võib öelda, et $g(\theta,\phi)$ funktsioon, **vaadatuna $\theta$ funktsioonina**, on proportsionaalne mõlema funktsiooniga  $p(\theta, \phi \mid y)$ ja $p(\theta \mid \phi, y)$ (kuna $(\phi \mid y)$ ei sisalda $\theta$ väärtust, siis ta on konstant $\theta$ funktsiooni mõttes) ja me võime ta samahästi asendada $p(\theta \mid \phi, y)$ väärtusega, kui update'ime $\theta$ väärtust. 
 
 Seda jaotust  $p(\theta \mid \phi, y)$ kutsutakse ka $\theta$ täielikuks tingimuslikuks jaotuseks (*full conditional distribution*). Miks kasutada seda $g(\theta,\phi)$ asemel? Sellepärast, et mõnikord on täielikud tingimuslikud jaotused standardsed jaotused, millest me oskame valimeid moodustada. Kui see juhtub, siis meil pole vaja tõmmata kandidaate ja otsustada, kas võtta vastu. Saame kasutada täielikku tingimuslikku jaotust ettepanekujaotusena, kus Metropolis-Hasting tõenäosus saab 1-ks. 
 
-Gibbsi valijad nõuavad natuke rohkem eeltööd, kuna peab leidma täielikud tingimuslikud jaotused kõigi parameetrite jaoks.Hea on see, et kõigil täielikele jaotusel on sama algpunkt: täielik ühine järeljaotus. Üleval oleva näite puhul:
+Gibbsi valijad (sämplerid) nõuavad natuke rohkem eeltööd, kuna peab leidma täielikud tingimuslikud jaotused kõigi parameetrite jaoks. Hea on see, et kõigil täielikele jaotusel on sama algpunkt: täielik ühine järeljaotus. Üleval oleva näite puhul:
 
 $p(\theta \mid \phi, y) \propto p(\theta, \phi \mid y)$
 
@@ -48,14 +48,128 @@ TUlles tagasi näite juurde Lesson 2 lõpus, kus meil on normaaljaotuslik likeli
 
 $\begin{align}y_i \mid \mu, \sigma^2 &\overset{\text{iid}}{\sim} \text{N} ( \mu, \sigma^2 ), \quad i=1,\ldots,n \\ \mu &\sim \text{N}(\mu_0, \sigma_0^2) \\ \sigma^2 &\sim \text{IG}(\nu_0, \beta_0)  \, .\end{align}$
 
-Me valime normaaljaotusliku eeljaotuse $\mu$ jaoks kuna juhtudel, kus $\sigma^@$ on teda, on normaaljaotus vastav jaotus (*conjugate prior*) $\mu$-le. Samuti, juhtudel, kus $\mu$ on teada, on inverse-gamma jaotus $\sigma^2$ vastav jaotus (*conjugate prior*). See annab meile mugava täieliku tingimusliku jaotuse Gibbs sampleri jaoks.
+Me valime normaaljaotusliku eeljaotuse $\mu$ jaoks kuna juhtudel, kus $\sigma^2$ on teda, on normaaljaotus vastav jaotus (*conjugate prior*) $\mu$-le. Samuti, juhtudel, kus $\mu$ on teada, on inverse-gamma jaotus $\sigma^2$ vastav jaotus (*conjugate prior*). See annab meile mugava täieliku tingimusliku jaotuse Gibbs sampleri jaoks.
 
 Kõigepealt selgitame välja täieliku posterior jaotuse vormi. Kui me hakkame andmeid analüüsima alguses, siis JAGS tarkvara teeb selle sammu meie eest ära. Kuid on äärmiselt oluline näha ja arusaada, kuidas see samm käib:
 
 $\begin{align}p( \mu, \sigma^2 \mid y_1, y_2, \ldots, y_n ) &\propto p(y_1, y_2, \ldots, y_n \mid \mu, \sigma^2) p(\mu) p(\sigma^2) \\  &= \prod_{i=1}^n \text{N} ( y_i \mid \mu, \sigma^2 ) \times \text{N}( \mu \mid \mu_0, \sigma_0^2) \times \text{IG}(\sigma^2 \mid \nu_0, \beta_0) \\ &= \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}}\exp \left[ -\frac{(y_i - \mu)^2}{2\sigma^2} \right] \times \frac{1}{\sqrt{2\pi\sigma_0^2}} \exp \left[ -\frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right] \times \frac{\beta_0^{\nu_0}}{\Gamma(\nu_0)}(\sigma^2)^{-(\nu_0 + 1)} \exp \left[ -\frac{\beta_0}{\sigma^2} \right] I_{\sigma^2 > 0}(\sigma^2) \\ &\propto (\sigma^2)^{-n/2} \exp \left[ -\frac{\sum_{i=1}^n (y_i - \mu)^2}{2\sigma^2} \right] \exp \left[ -\frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right] (\sigma^2)^{-(\nu_0 + 1)} \exp \left[ -\frac{\beta_0}{\sigma^2} \right] I_{\sigma^2 > 0}(\sigma^2) \end{align}$
 
-, kus me sisuliselt taandame konstandid ära ja saame õige likelihoodi. Järgmiseks pole raske leida täielikku tingimuslikku jaotust. Kõigepealt vaatame $\mu$ täielikku tingimuslikku jaotust, kus eeldame, et $\sigma^2$ on teada (seljuhul muutub ta konstandiks, mis saab osaks normaliseerivast konstandist (*gets absorbed into the normalizing constant*)). See tähendab omakorda, et võime avaldisi, kus $sigma^2$ on, eirata:
+, kus me sisuliselt alguses kirjutame välja tõnäosusjaotuste valemid ning seejärel taandame konstandid, mis ei sisalda $\mu$-d ega $\sigma^2$ väärtuseid, mille funktsiooniga tegu  on, ära ja saame õige likelihoodi. Sisuliselt saame ära taandada kõik $\frac{1}{\sqrt{2\pi\sigma^2}}$, kus jätame alles $\sigma$ ja korrutise viime exponendi sisse ja teeme summaks. Inverse-Gamme puhul saame ka konstandi droppida. Järgmiseks pole raske leida täielikku tingimuslikku jaotust. Kõigepealt vaatame $\mu$ täielikku tingimuslikku jaotust, kus eeldame, et $\sigma^2$ on teada (seljuhul muutub ta konstandiks, mis saab osaks normaliseerivast konstandist (*gets absorbed into the normalizing constant*)). See tähendab omakorda, et võime avaldisi, kus $sigma^2$ on, eirata:
 
 $\begin{align} p(\mu \mid \sigma^2, y_1, \ldots, y_n) &\propto p( \mu, \sigma^2 \mid y_1, \ldots, y_n ) \\ &\propto \exp \left[ -\frac{\sum_{i=1}^n (y_i - \mu)^2}{2\sigma^2} \right] \exp \left[ -\frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right] \\ &\propto \exp \left[ -\frac{1}{2} \left( \frac{ \sum_{i=1}^n (y_i - \mu)^2}{2\sigma^2} + \frac{(\mu - \mu_0)^2}{2\sigma_0^2} \right) \right] \\ &\propto \text{N} \left( \mu \mid \frac{n\bar{y}/\sigma^2 + \mu_0/\sigma_0^2}{n/\sigma^2 + 1/\sigma_0^2}, \, \frac{1}{n/\sigma^2 + 1/\sigma_0^2} \right) \, , \end {align}$
 
+Selle, kuidas me täpselt N(..,..)-ni jõuame exp[...] juurest, me tuletasime eelmise kursuse lisamterjalides. Seega lähtudes andmetest (given the data) ja $sigma^2$ -st on $\mu$ sellsie normaaljaotusega. Järgnevalt vaatame $\sigma^2$-t eeldades, et $\mu$ on teada (ja seega konstant, mida eirata proportsionaalsuseni):
+
+$\begin{align} p(\sigma^2 \mid \mu, y_1, \ldots, y_n) &\propto p( \mu, \sigma^2 \mid y_1, \ldots, y_n ) \\ &\propto (\sigma^2)^{-n/2} \exp \left[ -\frac{\sum_{i=1}^n (y_i - \mu)^2}{2\sigma^2} \right] (\sigma^2)^{-(\nu_0 + 1)} \exp \left[ -\frac{\beta_0}{\sigma^2} \right] I_{\sigma^2 > 0}(\sigma^2) \\ &\propto (\sigma^2)^{-(\nu_0 + n/2 + 1)} \exp \left[ -\frac{1}{\sigma^2} \left( \beta_0 + \frac{\sum_{i=1}^n (y_i - \mu)^2}{2} \right) \right] I_{\sigma^2 > 0}(\sigma^2) \\ &\propto \text{IG}\left( \sigma^2 \mid \nu_0 + \frac{n}{2}, \, \beta_0 + \frac{\sum_{i=1}^n (y_i - \mu)^2}{2} \right) \, . \end{align}$
+
+Siin kombineerime $\sigma´2$-d ja exponentsiaalsed osad ja pärast kombineerimist näeme, et eelviimane väljendus on Inverse-Gamma jaotuse tihedusfunktsioon (milles pole normaliseerivat konstanti), mis on proportsionaalne inverse-gamma jaotusega, milles on uuendatud (*updated*) kuju parameeter (*location paramter*) ja suuruse parameeter (*scale parameter*).
+
+Need kaks jaotust annab Gibbs samplerile aluse simuleerimiseks sellisest Markovi ahelast, mille statsionaarne jaotus on mõlema $\mu$ ja $sigma^2$ täilik posteriorjaotus. Me teeme vaheldumisi mõlema parameetri tõmbeid, kasutades kõige hiljutisetma teise parameetri tõmmet, et käesolevat uuendada. Teeme seda järgmises osas R-is.
+
+## Lesson 5.3 Gibbs sampler in R
+
+Selleks, et eespool kirjeldatud Gibbs samplerit rakendada, kasutame taas näidet, kus uurime personali protsentuaalset muutust n=10 ettevõttes eelmisest aastast käesoleva aastani. Me kasutame taaskord normaaljaotusliku *likelihood*i, kuid seekord me ei oma eeldust, et me teame tõusu varieeruvust, $\sigma^2$ firmade vahel ja anname ka sellele hinnangu. t kujuga eeljaotuse (*t prior*) asemel kasutame tingimuslikult vastavaid (*conjugate*) eeljaotuseid, normaaljaotus $\mu$ puhul ja inverse-gamma $\sigma^2$ puhul. 
+
+Esimene samm on kirjutada funktsioone, mis simuleerivad täielikke tingimuslikke jaotusi, mille tuletasime eelmises osas (Lesson 5.2). Nende funktsioonidega me paneme paika tõmbasmise jaotuste (täielikud tingimuslikud jaotused) parameetrid ja seejärel tõmbame väärtuse nendest jaotustest, mis on defineeritud ühelt pool eelnevalt simuleeritud teise parameetri poolt, mida me hetkel ei simuleeri. $\mu$ täielik tingimuslik jaotus teadaoleva $\sigma^2$ ja andmete puhul on:
+
+$\text{N} \left( \mu \mid \frac{n\bar{y}/\sigma^2 + \mu_0/\sigma_0^2}{n/\sigma^2 + 1/\sigma_0^2}, \, \frac{1}{n/\sigma^2 + 1/\sigma_0^2} \right)$
+
+```{r}
+#siin on mu_0 ja sig2_0 eeljaotuse parameetrid
+update_mu = function(n, ybar, sig2, mu_0, sig2_0) {
+  sig2_1 = 1.0 / (n / sig2 + 1.0 / sig2_0)
+  mu_1 = sig2_1 * (n * ybar / sig2 + mu_0 / sig2_0)
+  rnorm(n=1, mean=mu_1, sd=sqrt(sig2_1))
+}
+```
+
+täielik tingimuslik jaotus $\sigma^2$ jaoks kui $\mu$ on paika pandud ja funktsioon on
+
+$\text{IG}\left( \sigma^2 \mid \nu_0 + \frac{n}{2}, \, \beta_0 + \frac{\sum_{i=1}^n (y_i - \mu)^2}{2} \right)$
+
+```{r}
+#siin all on nu_0 ja beta_0 eeljaotuse parameetrid, mille me paika paneme eelnevalt
+update_sig2 = function(n, y, mu, nu_0, beta_0) {
+  nu_1 = nu_0 + n / 2.0 
+  sumsq = sum( (y - mu)^2 ) # vectorized
+  beta_1 = beta_0 + sumsq / 2.0
+  out_gamma = rgamma(n=1, shape=nu_1, rate=beta_1) # rate for gamma is shape for inv-gamma kuna r ei võimalda otse gammast tõmmata tõmbame algusest gammast ja siis võtame inverse'i, mis on sama kui otse gammast tõmmata.
+  1.0 / out_gamma # reciprocal of a gamma random variable is distributed inv-gamma
+}
+```
+
+Koos funktsioonidega, millega tõmmata täielikest tingimuslikest jaotustest (full conditionals) oleme valmis kirjutama funktsiooni, mis viib läbi Gibbs samplingut
+
+```{r}
+gibbs = function(y, n_iter, init, prior) {
+  ybar = mean(y) #kuna seda kasutatakse tihti, siis arvutame need kohe andmete põhjal välja
+  n = length(y) #sama lugu
+  
+  ## initialize
+  mu_out = numeric(n_iter) # see funktsioon väljutab selle asja. Tegemist vektoriga
+  sig2_out = numeric(n_iter) #käesolev funktsioon väljutab ka selle asja. Tegemist samuti vektoriga
+  
+  mu_now = init$mu #kuna masin kasutab eelnevaid väärtuseid, et uusi simulatsioone luua, siis peame valima migni algse väärtuse, millest üldse alustada
+  
+  ## Gibbs sampler. Siin sisuliselt muudame koguaeg sig2_now-d ja mu_now-d. Alguses on mu_now meie valitud väärtus
+  for (i in 1:n_iter) {
+    sig2_now = update_sig2(n=n, y=y, mu=mu_now, nu_0=prior$nu_0, beta_0=prior$beta_0) #kuna algseks väärtuseks sai mu, siis simuleerima alguses sigma. Siin prior on meil varem defineeritud vektor
+    mu_now = update_mu(n=n, ybar=ybar, sig2=sig2_now, mu_0=prior$mu_0, sig2_0=prior$sig2_0)
+    
+    sig2_out[i] = sig2_now # siia salvestame kõik iteratsioonid
+    mu_out[i] = mu_now #siia ka
+  }
+  #kui kõik iteratsioonid on läbitud ja vektorid täidetud eelmises funktsiooni osas, siis paneme ühte maatriksisse.
+  cbind(mu=mu_out, sig2=sig2_out)
+}
+```
+
+Nüüd oleme valmis probleemi paika panema R-is
+
+```{r}
+y = c(1.2, 1.4, -0.5, 0.3, 0.9, 2.3, 1.0, 0.1, 1.3, 1.9) #andmed
+ybar = mean(y) 
+n = length(y)
+
+## prior
+prior = list() #tühi list
+prior$mu_0 = 0.0 # paneme priori mu 0
+prior$sig2_0 = 1.0 # see on pmtslt meie enesekindlus esialgse prior keskmise mu_0 osas. See on 1, et oleks varsemas näites sarnane t jaotusega.
+
+#Need kaks siin on vahe numbrid, millest tuletame Inverse Gama parameetrid. Kasutame selleks, et oleks kergem mõtestada, millest IG parameetrid koosnevad täpselt ja mida me valime, kui me valime IG parameetreid.
+prior$n_0 = 2.0 # prior effective sample size for sig2
+prior$s2_0 = 1.0 # prior point estimate for sig2
+
+#Järgmised kaks parameetrid määravad prior jaotuse sigma jaoks. See prior jaotus on "Scaled inverse chi-squared distribution". Need lähtuvalt kahest eelnevast valitud parameetrist n_0 ja s2_0. Valem on alati sama. Need on pmtslt prioriks valitud Inverse-Gamma jaotuse parameetrid, mis on tuletatud prior effective sample size-ist ja sig2 point estimate'ist üleval. 
+prior$nu_0 = prior$n_0 / 2.0 # prior parameter for inverse-gamma (meie pakutav tõeline sigma 2)
+prior$beta_0 = prior$n_0 * prior$s2_0 / 2.0 # prior parameter for inverse-gamma (kui kindlad me oma pakutavas sigma2-s oleme)
+
+hist(y, freq=FALSE, xlim=c(-1.0, 3.0)) # histogram of the data
+curve(dnorm(x=x, mean=prior$mu_0, sd=sqrt(prior$sig2_0)), lty=2, add=TRUE) # prior for mu
+points(y, rep(0,n), pch=1) # individual data points
+points(ybar, 0, pch=19) # sample mean
+```
+
+Järgmiseks jooksutame sämplerit
+
+```{r}
+set.seed(53)
+
+init = list()
+init$mu = 0.0 #Valime algseks väärtuseks 0
+post = gibbs(y=y, n_iter=5e3, init=init, prior=prior)
+```
+
+
+```{r}
+head(post)
+```
+```{r}
+library("coda")
+plot(as.mcmc(post))
+```
+
+```{r}
+summary(as.mcmc(post))
+```
 

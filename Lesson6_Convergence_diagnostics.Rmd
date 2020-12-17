@@ -1,0 +1,230 @@
+---
+title: 'Lesson 6: Convergence diagnostics'
+author: "Siim Põldre"
+date: "12/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lesson 6.1
+
+Oleme siiani vaadanud viise, kuidas simuleerida Markovi ahelat, mille statsionaarne jaotus on eesmärkjaotus (tavaliselt järeljaotus). Enne kui kasutame simuleeritud ahelat, et saada Monte Carlo hinnangulisi väärtuseid, peaksime endalt küsima: kas meie simuleeritud Markovi ahel on *converge*inud oma statsionaarsesse jaotusesse. See pole kerge küsimus, millele vastata, kuid me saame teha erinevaid asju, et seda uurida.
+
+## Trace plots
+
+Esimene visuaalne tööriist, mida saame ahelate uurimiseks kasutada, on trace plot. Trace plot näitab meile parameetri ajalugu läbi erinevate ahela iteratsioonide. See näitab sulle täpselt, kus ahel on käinud.
+
+Esmalt peab rääkima sellest, milline ahel peaks välja nägema. Siin on ahel, mis on suhteliselt tõenäoliselt *converge*'inud. 
+
+```{r}
+#mh funktsioon tuleneb eelmisest Metropolis-Hastings loengust
+source("MH_kood.R", echo = FALSE)
+
+#
+set.seed(61)
+post0 = mh(n=n, ybar=ybar, n_iter=10e3, mu_init=0.0, cand_sd=0.9)
+coda::traceplot(as.mcmc(post0$mu[-c(1:500)]))
+
+```
+Kui kett on statsionaarne, siis ei tohiks näha olla pikemas perspektiivis nähtavaid trende. Keti keskmine väärtus peaks olema suhteliselt *flat*. Keskmine ei tohiks muutuda suurelt, nagu näha järgmises plotis, kus on sammu suurus liiga väike ja läheb vaja palju iteratsioone, et kogu jaotust läbi käia:
+
+```{r}
+set.seed(61)
+post1 = mh(n=n, ybar=ybar, n_iter=1e3, mu_init=0.0, cand_sd=0.04)
+coda::traceplot(as.mcmc(post1$mu[-c(1:500)]))
+```
+
+
+
+Kui trace plot näeb selline välja, siis on vaja ketil palju lisa iteratsioone, et kett käiks läbi kogu jaotuse, nagu oleme teinud siin tehes n_iteri suuremaks
+
+```{r}
+set.seed(61)
+post2 = mh(n=n, ybar=ybar, n_iter=100e3, mu_init=0.0, cand_sd=0.04)
+coda::traceplot(as.mcmc(post2$mu))
+```
+Siin on näha, et kett on palju suurema aja jooksul ikkagi *converge*inud.
+
+## Monte Carlo effective sample size
+
+Üks suur vahe kahe ahela vahel, mida oleme vaadanud, on autokorrelatsiooni hulk mõlemas. Autokorrelatsioon on number -1 ja 1 vahel, mis mõõdab kui lineaarselt sõltuv praegune ahela väärtus on eelnevatest väärtustest (mida kutsutakse: *lags*). Saame seda vaadata autocorrelation plotiga:
+
+```{r}
+coda::autocorr.plot(as.mcmc(post0$mu))
+```
+Siin tegemist esimese plotiga, mis kiiresti convergeis. 0 lagiga on autokorrelatsioon suur, sest see näitab kui suures korrelatsioonis on iga väärtus väärtustega, mis on temast 0 sammu tagapool. St iseendaga. Korrelatsioon muidugi 1. 
+
+```{r}
+coda::autocorr.diag(as.mcmc(post0$mu))
+```
+
+```{r}
+coda::autocorr.plot(as.mcmc(post1$mu))
+```
+Siin näeme, et isegi 30 sammu hiljem on tõmmatud väärtused tugevalt korrelatsioonis (suurem kui 0.5) eelmistega. Lag y-teljel näitab korrelatsiooni väärtustega, mis on y-telje väärtustele vastav sammu taga pool. Nt me näeme, et siinse ahela puhul on iga väärtus suuremas kui 0.5 korrelatsioonis väärtusega, mis on temast 30 sammu taga pool. 
+
+```{r}
+coda::autocorr.diag(as.mcmc(post1$mu))
+```
+
+Autokorrelatsioon on oluline, kuna ütleb meile, palju informatsiooni meie Markovi ahelas on. Näiteks kui tõmbame 1000se valimi suure korrelatsiooniga Markovi ahelast, siis saame vähem informatsiooni statsionaarsest jaotusest, kui me saaks 1000 tõmbest, mis on sõltumatult tõmmatud statsionaarsest jaotusest.
+
+Sellest võib mõelda nii, et kui sa tahad teha uurimust oma linna filmimaitse kohta, siis kui sa küsid ainult oma sõpradelt, siis saad palju vähem informatsiooni linna kohta üldiselt, sest sõprade filmieelistused on korrelatsioonis, kui saaksid küsides sõltumatult valimilt ehk suvalistelt inimestelt linnas.
+
+Autokorrelatsioon on oluline osa Monte Carlo effektiivse valimi suuruse (*Monte Carlo effective sample size*) arvutamisel parajasti kasutatava ahela jaoks. Monte Carlo effektiivne valimi suurus näitab, kui palju **sõltumatuid valimeid** peaks statsionaarsest jaotusest tõmbama, et saada sama palju informatsiooni sinu Markovi ahelaga. Sisuliselt on tegemist muutujaga m (valimi suurus), mille valisime Monte Carlo estimation-it käsitlevas loengus.
+
+```{r}
+str(post2) # contains 100,000 iterations. See on koguvalim.
+```
+```{r}
+coda::effectiveSize(as.mcmc(post2$mu)) # effective sample size of ~350
+```
+See tähendab, et et meie 100kne valim annab informatsiooni ainult 373 sõltumatu valimi vääriselt.
+```{r}
+##Siin me vaatame, kui suure vahega oma ahelast me peaks väärtuseid oma valimisse võtma (thin out the samples) autokorrelatsioon on sisuliselt 0. See annab meile ligikaudu sõltumatud valimid. See arv valimeid, mis alles jääb on sarnane effective sample size'iga
+coda::autocorr.plot(as.mcmc(post2$mu), lag.max=500)
+```
+See ülemine näitab meile, et väärtused ahelas peavad olema kuskil 400 sammu üksteisest eemal, et nad poleks autokorreleeritud. 
+```{r}
+thin_interval = 400 # how far apart the iterations are for autocorrelation to be essentially 0.
+thin_indx = seq(from=thin_interval, to=length(post2$mu), by=thin_interval)
+head(thin_indx) #mitmendad väärtused me alles jätame
+```
+
+```{r}
+post2mu_thin = post2$mu[thin_indx] #kasutame loodud indeksit, et näidata, mitmendad väärtused me allaes jätame
+traceplot(as.mcmc(post2$mu)) #see on kõik 100k sammu
+```
+```{r}
+traceplot(as.mcmc(post2mu_thin)) #siin vaatame ainult neid, mis alles otsustasime jätta iga 400 tagant
+```
+```{r}
+coda::autocorr.plot(as.mcmc(post2mu_thin), lag.max=10) #autokorrelatsioon kadus, sest kasutasime igat 400dat väärtust
+```
+```{r}
+effectiveSize(as.mcmc(post2mu_thin)) #ahela, kus on arvestatud ainult iga 400 tagant väärtuseid, pikkus
+```
+
+```{r}
+length(post2mu_thin) #effective sample size on umbes sama suur kui meie kogu ahel, sest võtsime 400dad väärtused
+```
+
+```{r}
+str(post0) # contains 10,000 iterations
+```
+
+```{r}
+coda::effectiveSize(as.mcmc(post0$mu)) # effective sample size of ~2,500
+```
+
+```{r}
+?effectiveSize
+```
+
+Ahelal post0-s on 10,000 iteratsiooni, effektiivse valimi suurusega 2500. See tähendab, et meie 10kne ahel ahel annab informatsiooni võrdselt 2500 sõltumatu Monte Carlo valimiga. 
+
+Ahelal post0-st on 10 korda vähem iteratsioone kui ahelal post2-st, kuid tema Monte Carlo effektiivne valimi suurus on kuskil 7 korda suurem, kui pikem (ja rohkem kollereeunud) ahelal. Selleks, et saada mõlema ahela informatsioonihulga võrdseks, peaksime rohkem korreleeritud ahelat jooksutama 700,000+ korda veel (kuna saame võtta väärtuseid ainult teatud valimite tagant, et nad poleks korrelatsioonis).
+
+On mõistlik vaadata oma ahela Monte Carlo effektiivset valimi suurust. Kui me oleme huvitatud ainult järeljaotuse keskmisest, siis peaks effektiivse valimi suuruse puhul piisama mõnest sajast kuni mõne tuhandesest effektiivsest valimi suurusest. Kui me tahame, aga luua 95% järeljaotuse intervalli, siis on vaja mitmeid tuhandeid effektiivseid valimeid, et saada järeljaotuse väliste äärte (mis esinevad harvemini) kohta usaldusväärseid andmeid. Effektiivsete valimite arvu, mis vaja on, saab arvutada kasutades Raftery ja Lewise diagnostikat
+
+```{r}
+raftery.diag(as.mcmc(post0$mu))
+```
+Dependence factor näitab kui mitu total valimit on üks effektiivne valim. Ehk selleks, et saada ühte effektiivset valimit, peame võtma 3.53 oma ahela valimit.
+```{r}
+raftery.diag(as.mcmc(post0$mu), q=0.005, r=0.001, s=0.95)
+```
+```{r}
+?raftery.diag
+```
+
+Esimese ahela puhul post0-st tundub, et meil on vaja kuskil 3700 effektiivset valimit, et arvutada usaldusväärseid 95% intervalle. Kuna aehlas on autkorrelatsiooni, siis see tähendab kuskil 13200-st koguvalimit (mis võrdub 3700 effektiivse valimiga). Kui me tahaks 99% intervalle, siis meil oleks vaja vähemalt 19100-st koguvalimit.
+
+## Lesson 6.2 
+
+### Burn in
+
+Oleme näinud ka, kuidas ahela algne väärtus võib mõjutada seda, kui kiiresti ahel converge'ib. Kui meie algne väärtus on järeljaotuse suuremast osast kaugel, siis võib minna aega, et ahel sinna jõuaks. Seda nägime selles näites:
+
+```{r}
+set.seed(62)
+post3 = mh(n=n, ybar=ybar, n_iter=500, mu_init=10.0, cand_sd=0.3)
+coda::traceplot(as.mcmc(post3$mu))
+```
+
+Kuskil 100 esimest iteratsiooni ei peegelda tõmbeid statsionaarsest jaotusest, niiet nad peaks eemaldama enne, kui me seda ahelat Monte Carlo hinnanguteks kasutame. Seda nimetatakse "burn in" perioodiks. Varased iteratsioonid, mis ei tundu tulevat statsionaarsest jaotusest, tuleks alati eemadada. isegi kui ahel tundub *converge*'ivat varakult, on kindlam varane 'burn-in' eemaldada.
+
+### Multiple chains, Gelman Rubin
+
+Kui me tahame veelgi kindlamad olla, et me oleme tõelise statsionarse jaotuseni jõudnud, siis saame simuleerida mitu ahelat, kõik erineva alustamisväärtusega. Kui nad samasse kohta jõuavad, siis on selge, et meie jaotus on tõesti statsionaarne jaotus.
+
+```{r}
+set.seed(61)
+
+nsim = 500
+post1 = mh(n=n, ybar=ybar, n_iter=nsim, mu_init=15.0, cand_sd=0.4) #mh tuleneb jälle teisest source failist MH_kood.R
+post1$accpt
+```
+
+```{r}
+post2 = mh(n=n, ybar=ybar, n_iter=nsim, mu_init=-5.0, cand_sd=0.4)
+post2$accpt
+```
+
+```{r}
+post3 = mh(n=n, ybar=ybar, n_iter=nsim, mu_init=7.0, cand_sd=0.1)
+post3$accpt
+```
+
+```{r}
+post4 = mh(n=n, ybar=ybar, n_iter=nsim, mu_init=23.0, cand_sd=0.5)
+post4$accpt
+```
+
+```{r}
+post5 = mh(n=n, ybar=ybar, n_iter=nsim, mu_init=-17.0, cand_sd=0.4)
+post5$accpt
+```
+
+```{r}
+pmc = mcmc.list(as.mcmc(post1$mu), as.mcmc(post2$mu), 
+                as.mcmc(post3$mu), as.mcmc(post4$mu), as.mcmc(post5$mu))
+str(pmc)
+
+```
+
+```{r}
+coda::traceplot(pmc)
+```
+
+Kasutades erinevaid alustamispunkte näeme, et kuskil pärast 200 iteratsiooni *converge*isid kõik ahelad statsionaarsetesse (järel) jaotustesse. See tähendab, et meie jaotus on ka statsionaarne jaotus. Me saame oma visuaalseid tulemusi kinnitada Gelmani ja Rubini diagnostikaga. See diagnostiline statistik arvutab variatiivsuse ahelate sees, võrreldes seda variatiivsusega ahelate vahel. Kui kõik ahelad on *converge*'inud statsionaarsesse jaotusesse, siis peaks ahelate vaheline variatiivsus olema suhteliselt väike ja potentsiaalne *scale reduction factor*, mida see diagnostiline tööriist annab, peaks olema ligilähedaselt 1. Kui väärtus on palju suurem kui 1, siis oleks järeldus, et ahelad ei ole veel *converge*inud. 
+
+```{r}
+coda::gelman.diag(pmc)
+```
+```{r}
+coda::gelman.plot(pmc)
+```
+```{r}
+?gelman.diag
+```
+
+See näitab kuidas *shrink factor* muutub iteratsioonide lisandudes. Graafikult näeme, et kui me kasutaksime ainult esimest 50 iteratsiooni, siis potentsiaalne *scale reduction factor* või *"shrink factor*" oleks 10 lähedal, mis näitab, et ahelad pole veel *converge*'inud. Kuid pärast umbes 300 iteratsiooni on *"shrink factor*" sisuliselt 1, mis näitab, et selleks ajaks oleme jõudnud *convergence*'ini. Muidugi ei sa valimite tõmbamist kohe lõpetada. Sellest hetkest peaks hakkama oma valimeid salvestama.
+
+### Monte Carlo estimation
+
+Kui me oleme suhteliselt kindlad, et meie ahel on *converge*'inud, siis võime seda ahelat võttqa kui Monte Carlo valimit järeljaotuses. Seega saame kasutada tehnikaid Lesson 3-st, et arvutada järeljaotuse väärtuseid nagu järeljaotuse keskmine ja järeljaotuse intervallid otse valimitest, mis oleme saanud. 
+
+```{r}
+nburn = 1000 # remember to discard early iterations
+post0$mu_keep = post0$mu[-c(1:nburn)]
+summary(as.mcmc(post0$mu_keep)) #kuna oleme kindlad, et tegemist statsionaarse jaotusega, siis saame hinnata jaotust, nagu see oleks õige mu jaotus, mida otsimegi, ja öelda mis on erinevate mu väärtuste tõenäosus jne. 
+```
+
+```{r}
+mean(post0$mu_keep > 1.0) # posterior probability that mu  > 1.0
+```
+

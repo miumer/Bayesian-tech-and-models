@@ -1,0 +1,186 @@
+---
+title: "Lesson 3 Monte Carlo Estimation"
+author: "Siim Põldre"
+date: "12/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lesson 3.1
+
+### Simulation and CLT
+
+Enne kui me õpime, kuidas simuleerida keerulistest järeljaotustest, vaatame üle mõningad Monte Carlo hinnangute põhitõed. Monte carlo hinnangute andmine viitab hüpoteetiliste tõmmete simuleerimisele tõenäosusjaotusest selleks, et arvutada olulisi suuruseid. Need suurused võivad olla nt keskmine, dispersiooon, mingi sündmuse tõenäosus, kvantiilid jms. Kõik need arvutused nõuavad integratsiooni, mis võib olla väljaspool kõige kergemaid jaotuseid, väga keeruline või võimatu.
+
+Oletame, et meil on juhuslik muutuja \(\theta\), millel on Gamma(a, b) jaotus. Ütleme, et a = 2 ja b = 1/3, kus b on rate parameter. Selleks, et jaotuse keskmist arvutada, peaksime leidma järgneva integraali:
+
+\(\text{E}(\theta) = \int_0^\infty \theta f(\theta) d\theta = \int_0^\infty \theta \frac{b^a}{\Gamma(a)}\theta^{a-1}e^{-b\theta} d\theta \, .\)
+
+Seda integraali on võimalik leida, ja vastus on a/b = 6 praegusel juhul. Kuid me võime seda vastust kinnitada ka Monte Carlo hinnangute abiga. Selleks simuleeriksime me suure arvu tõmbeid (nimetame neid (\(\theta^*_i \, i=1,...,m\)) sellest gamma jaotusest ning arvutame nende valimi keskmise.
+
+Saame seda teha sellepärast, et kui meil on juhuslik valim jaotusest, siis nende valimite keskväärtus *converge*'ib tõenäosuse poolest selle jaotuse tõelisele keskväärtusele suurte numbrite seaduse tõttu. **Central Limit Theorem**'i järgi on sellel valimite keskmisel \(\bar{\theta}^* = \frac{1}{m}\sum_{i=1}^m \theta_i^*\) ligikaudu normaaljaotus keskmisega E(\(\theta\)) ja variatsiooniga \(Var(\theta)/m\). Teoreetiline \(\theta\) variatsioon on integraal
+
+\(\text{Var}(\theta) = \int_0^\infty (\theta-E(\theta))^2 f(\theta) d\theta \, .\)
+
+Samamoodi nagu me tegime keskmisega, saame anda hinnangu variatsioonile valimi variatsiooniga \(\frac{1}{m}\sum_{i=1}^m (\theta_i^* - \bar{\theta}^*)^2\)
+
+### Calculating probabilities
+
+Seda meetodit saab kasutada mitmete erinevate integraalide arvutamiseks. Kui näiteks \(h(\theta)\) on mingi funktsioon ja me tahame arvutada integraali \(\int h(\theta) p(\theta) d\theta\). See integraal on täpselt see, mida mõeldakse \(E(h(\theta))\) all. Me saame anda sellele hinnangu, kui me võtame lihtsalt \(h(\theta^*_1\) valimi keskmise. See tähendab, et me rakendame funktsiooni h igale simuleeritud valimile jaotusest, ja võtame tulemnuste keskmise. Näiteks kui h funktsioon on *indicator function* I_A(\theta), kus A on mingi loogiline tingimus \(\theta\) väärtuse osas. Näiteks kui \(h(\theta) = I_{[\theta<5]}(\theta)\), mis annab meile 1, kui \(\theta<5\) ja 0 kui on teisiti. \(E(h(\theta))\) on seega integraal
+
+\(\int_0^\infty I_{[\theta<5]}(\theta) p(\theta) d\theta = \int_0^5 1 \cdot p(\theta) d\theta + \int_5^\infty 0 \cdot p(\theta) d\theta = P(\theta < 5) \, .\)
+
+See tähendab, et me saame hinnata tõenäosust, et \(\theta<5\) tõmmates valimeid \(\theta_i^*\) ja andes hinnangu integraalile arvutades lihtsalt (\frac{1}{m} \sum_{i=1}^m I_{\theta^* < 5} (\theta_i^*)\). See tähendab, et me loendame lihtsalt kui paljud nendest väärtustest on alla 5, ja jagame kõigi simuleeritud väärtuste arvuga. See on päris mugav!
+
+Samuti saame näiteks jaotuse kvantiilidele anda hinnanguid. Kui me otsime sellestn z väärtust, kus \(P(\theta < z) = 0.9\), siis me lihtsalt paneme tõmmatud valimid (\theta_i^*)\) järjekorda väikseimast suuremani ja vaatame, milline on väikseim väärtus, mis on suurem kui teised 90%.
+
+## Lesson 3.2
+
+### Monte Carlo error
+
+Kui head on Monte Carlo valimite hinnang? See lähtub samuti CLT-st, mis ütleb meile, et meie hinnangu variatsiooni kontrollib osaliselt m. Paremaks hinnanguks on meil vaja suuremat m-i.
+
+Näiteks, kui me otsime \(E(\theta)\)-t siis valimi keskmis(t)el \(\bar{\theta}^*\) on ligikaudu normaaljaotus keskmisega \(E(\theta)\) ja variatsiooniga \(Var(\theta)/m\). See variatsioon ütleb meile kui kaugel meie hinnang võib olla tõelisest hinnangust. Selleks, et anda hinnang \(Var(\theta\)-le on asendada see valimi variatsiooniga. Meie Monte Carlo hinnangu standardhälve on selle ruutjuur või siis valimi standardhälve jagatud \(\sqrt{m}\). Kui m on suur, siis on mõistlik arvata, et tõeline väärtus on kuskil kahe standardhälbe kaugusel meie Monte Carlo hinnangust.
+
+### Marginaliseerimine
+
+Me võime võtta Monte Carlo valimeid ka hierarhilistest mudelitest. Lihtsa näitena: kui meil on binomiaalne juhuslik muutuja y \(\mid \phi \sim \text{Bin}(10, \phi)\) ja \(\phi\) on juhuslik (nagu tal oleks prior) ja ta on beta jaotusega \(\phi \sim \text{Beta}(2,2)\). Siis ükskõik millise hierarhilise mudeli puhul võime alati kirjutada y ja \(\phi\) kirjutada kui \(p(y, \phi) = p(y \mid \phi)p(\phi)\) kasutades tõenäosuse ketireeglit. Selleks, et simuleerida väärtuseid antud ühisest jaotusest kordame selliseid samme suurel hulgal m:
+
+1. Simuleeri \(\phi_i^*\) oma \(\text{Beta}(2,2)\) jaotusest
+2. Võta tõmmatud  \(\phi_i^*\) ja kasuta seda selleks, et simuleerida \(y_i^*\) jaotusest \(\text{Bin}(10, \phi_i^*)\)
+
+See annab meile m sõltumatut \((y^*, \phi^*)_i\) paari, mis on tõmmatud nende ühisest jaotusest. Üks suur Monte carlo hinnangute eelis on, et marginaliseerimine on kerge. y marginaalse jaotuse \(p(y) = \int_0^1 p(y, \phi) d\phi\) arvutamine võib olla keeruline. Aga kui meil on tõmbed ühisest jaotusest, siis me võime eirata \(\phi_i^*\) tõmbeid ja kasutada neid ainult \(y_i^*\) tõmbamiseks, oma marginaalsest jaotusest. Seda nimetatakse ka *prior predictive distribution*, mida tutvustasime eelmisel kursusel. 
+
+## Lesson 3.3
+
+### Näide Lesson 3.1-st
+
+Kõige tavalisematest jaotustes Monte Carlo simulatsioone tehes on R-is väga lihtne
+
+Kui me kasutame 3.1 näidet, kus \(\theta \sim \text{Gamma}(a, b)\), kus a = 2, b = 1/3, siis see tähendab \(\theta\) järeljaotust juhul, kui meie andmed tulevad Poissoni jaotusest, mille keskmine on \(\theta\) ja me kasutame conjugate gamma eeljaotust. Alustame m = 100-ga
+
+```{r}
+set.seed(32) # Initializes the random number generator so we can replicate these results. To get different random numbers, change the seed.
+m = 100
+a = 2.0
+b = 1.0 / 3.0
+```
+
+Selleks, et simuleerida m sõltumatut valimit, kasutame rgamma jaotust
+
+```{r}
+theta = rgamma(n=m, shape=a, rate=b)
+```
+
+Loodud andmete histogram on selline
+
+```{r}
+hist(theta, freq=FALSE)
+curve(dgamma(x=x, shape=a, rate=b), col="blue", add=TRUE)
+```
+
+Selleks, et leida Monte Carlo hinnang \(E(\theta)-le\), kasutame oma valimi keskmist (ja võrdleme seda tõega).
+
+```{r}
+sum(theta) / m # sample mean
+```
+
+```{r}
+mean(theta) # sample mean
+```
+
+```{r}
+a / b # true expected value
+```
+
+```{r}
+m = 1e4
+theta = rgamma(n=m, shape=a, rate=b)
+mean(theta)
+```
+
+Milline on aga \(\theta\) variatsioon?
+
+```{r}
+var(theta) # sample variance
+```
+
+```{r}
+a / b^2 # true variance of Gamma(a,b)
+```
+
+Selleks, et hinnata tõenäosust, et \(\theta < 5\)
+
+```{r}
+ind = theta < 5.0 # set of indicators, TRUE if theta_i < 5
+mean(ind) # automatically converts FALSE/TRUE to 0/1
+```
+
+```{r}
+pgamma(q=5.0, shape=a, rate=b) # true value of Pr( theta < 5 )
+```
+
+Mis on \(\theta\) 0.9 kvantiil? 
+
+```{r}
+quantile(x=theta, probs=0.9)
+```
+
+```{r}
+qgamma(p=0.9, shape=a, rate=b) # true value of 0.9 quantile
+```
+
+## Lesson 3.4
+
+### Monte Carlo error
+
+Me saame kasutada CLT-d ei hinnata kui täpsed meie Monte Carlo hinnangud  on. Näiteks, kui me otsime E\(\theta\)-t, siis on valimi keskmisel ligukaudu \(\bar{\theta}^*\) normaaljaotus keskmisega E\(\theta\) ja variatsiooniga \(Var(\theta)/m\). Me kasutame valimi standardhälvet jagatud m-i ruutjuurega, et hinnata Monte Carlo standardhälvet.
+
+```{r}
+se = sd(theta) / sqrt(m)
+2.0 * se # we are reasonably confident that the Monte Carlo estimate is no more than this far from the truth
+```
+
+Need numbrid annavad meile mõistliku vahemiku suurusele, mida me Monte Carloga hindame. Sama kehtib ka Monte carlo hinnangute kohta, nt tõenäosus, et  \(\theta < 5\)
+
+```{r}
+ind = theta < 5.0
+se = sd(ind) / sqrt(m)
+2.0 * se # we are reasonably confident that the Monte Carlo estimate is no more than this far from the truth
+```
+
+### Marginaliseerimine
+
+Teise näitena vaatame, kuidas imuleerida hierarhilist mudelit. kasutades eelmises osas nähtud näidet, oli meil binomiaalne juhuslik muutuja, kus \(y \mid \phi \overset{\text{iid}}{\sim} \text{Bin}(10, \phi)\)  ja \(\phi \sim \text{Beta}(2,2)\). Selleks, et simuleerida sellest ühisest jaotusest (*joint distribution*) kordame järgmiseid samme m korda:
+
+1. Simuleeri \(\phi_i^*\) oma \(\text{Beta}(2,2)\) jaotusest
+2. Võta tõmmatud  \(\phi_i^*\) ja kasuta seda selleks, et simuleerida \(y_i^*\) jaotusest \(\text{Bin}(10, \phi_i^*)\)
+
+```{r}
+m = 10e4
+
+y = numeric(m) # create the vectors we will fill in with simulations
+phi = numeric(m)
+
+for (i in 1:m) {
+  phi[i] = rbeta(n=1, shape1=2.0, shape2=2.0)
+  y[i] = rbinom(n=1, size=10, prob=phi[i])
+}
+# which is equivalent to the following 'vectorized' code
+phi = rbeta(n=m, shape1=2.0, shape2=2.0)
+y = rbinom(n=m, size=10, prob=phi)
+```
+
+Kui meid huvitab ainult y marginaalne jaotus, siis me võime \(\phi\) tõbmbeid eirata ja vaadata y tõmbeid kui tõmbeid nende marginaalsest jaotusest
+
+```{r}
+mean(y)
+```
+
+```{r}
+plot(prop.table(table(y)), ylab="P(y)", main="Marginal distribution of y")
+```
+

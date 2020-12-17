@@ -30,7 +30,7 @@ Teisiti sõnastades vaatame joone pealse osa puhul tõenäosust/likelihoodi (in 
 Samal ajal joone aluse osa puhul vaatame ka tõenäosust saada kahte asja korraga:
 Saada praegu kehtivat ja eelmise iterationi ajal proposalist tõmmatud $\theta_{i-1}$ väärtust ***target distributionist***-st ja saada praegu tõmmatud väärtust praegu kehtiva väärtuse korral q() funktsiooni kohaselt.
 
-![Binomial Hastings 1](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/Binomial_Hastings1.png)
+
 
 
   c. Kui $\alpha \geq 1$, siis paneme $\theta_i$ väärtuseks $\theta^*$. Kui $\alpha < 1$, siis muudame $\theta_i = \theta^*$ tõenäosusega $\alpha$, või muudame $\theta_i = \theta_{i-1}$ tõenäosusega $1-\alpha$. 
@@ -48,7 +48,6 @@ esimene rida vastab praegune seisund \(\theta\)=fair ja teine rida praegune seis
 
 Kui me paneme meie ülemineku tõenäosused ehk tõenäosused, et mingi seisundi korral vahetame seisundit, maatriksisse, siis saame üleminekumaatriksi P. Kui leiame selle üleminekumaatriksi statsionaarse maatriksi siis on tulemuseks statsionaarse maatriks, kus mõlemast seisundist ülemineku tõenäosused on [.612, .388], mis on ka antud lihtsa binomiaalse näite puhul analüütiliselt leitav jaotus, sest leitud andmete x = 2 järgi on tõenäosus, et $\theta$ = loaded 38.8% ja tõenäosus, et $\theta$ = fair 61.2%. Saame kontrollida, et see ongi statsionaarne jaotus, sest statsionaarse jaotuse definitsioon on, et kui korrutame teda ülminekumaatriksiga, mille statsionaarne jaotus ta on, jääb jaotus samaks.
 
-![Binomial Hastings 2](/home/john/Dokumendid/R_Projects/Bayesian-tech-and-models/pictures/Binomial_Hastings2.png)
 
 Sammud 2b ja 2c käituvad nagu kohandus, sest ***proposal distribution*** ei ole ***target distribution***. Kõigil ahela sammudel me tõmbame kandidaadi ja seejärel otsustame, kas "liigutada" ahel uude olekusse või jääda sinna, kus oleme. Kui kandidaadile liigutamine on "kasulik" ($\alpha \geq 1$), siis me "liigutame" ja kui see pole "kasulik", siis me võime siiski liigutada, aga seda tõenäosusega $\alpha$. Kuna meie otsus "liikuda" kandidaadile sõltub ainult sellest, kus ahel parajast on, on tegemist Markovi ahelaga.
 

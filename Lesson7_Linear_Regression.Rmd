@@ -1,0 +1,346 @@
+---
+title: 'Lesson 7: Linear Regression'
+author: "Siim Põldre"
+date: "12/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lesson 7.2
+
+### Lineaarse regressiooni ülevaade Bayesi raamistikus 
+
+! [Regression in bayesian Framework](/home/john/Documents/R projects/Bayesian tech and models/pictures/Lesson7_regression_in_bayesian_framework.png) 
+
+### Data
+
+Näitena vaatame Leinhardt andmeid R-i car pakis
+
+```{r}
+library("car")
+data("Leinhardt")
+?Leinhardt
+head(Leinhardt)
+```
+
+```{r}
+str(Leinhardt)
+```
+
+```{r}
+pairs(Leinhardt)
+```
+
+Alustame lihtsa lineaarse regressiooni mudeliga, mis seob imikusuremuse per capita sissetulekuga
+
+```{r}
+plot(infant ~ income, data=Leinhardt)
+```
+
+```{r}
+hist(Leinhardt$infant)
+```
+```{r}
+hist(Leinhardt$income)
+```
+```{r}
+Leinhardt$loginfant = log(Leinhardt$infant)
+Leinhardt$logincome = log(Leinhardt$income)
+
+plot(loginfant ~ logincome, data=Leinhardt)
+```
+Kuna imikusuremus ja per capita sissetulek on positiivsed ja paremale poole kaldu suurused, siis kaalume nende mudeldamist logaritmilisel skaalal. Lineaarne mudel tundub sellel skaalal palju sobivam.
+
+### Mudeldamine
+
+Viidatav Bayesi analüüs (mitte-informatiivse prioriga) on otse R-is saadaval:
+
+```{r}
+lmod = lm(loginfant ~ logincome, data=Leinhardt)
+summary(lmod)
+```
+
+##Lesson 7.3
+
+### Mudel JAGS-is
+
+Kuna osad väärtused on puudu, siis jätame nad lihtalt välja
+
+```{r}
+dat = na.omit(Leinhardt)
+
+library("rjags")
+```
+
+```{r}
+mod1_string = " model {
+    for (i in 1:n) {
+        y[i] ~ dnorm(mu[i], prec)
+        mu[i] = b[1] + b[2]*log_income[i] 
+    }
+    
+    for (i in 1:2) {
+        b[i] ~ dnorm(0.0, 1.0/1.0e6)
+    }
+    
+    prec ~ dgamma(5/2.0, 5*10.0/2.0)
+    sig2 = 1.0 / prec
+    sig = sqrt(sig2)
+} "
+
+set.seed(72)
+data1_jags = list(y=dat$loginfant, n=nrow(dat), 
+              log_income=dat$logincome)
+
+params1 = c("b", "sig")
+
+inits1 = function() {
+    inits = list("b"=rnorm(2,0.0,100.0), "prec"=rgamma(1,1.0,1.0))
+}
+
+mod1 = jags.model(textConnection(mod1_string), data=data1_jags, inits=inits1, n.chains=3)
+update(mod1, 1000) # burn-in
+
+mod1_sim = coda.samples(model=mod1,
+                        variable.names=params1,
+                        n.iter=5000)
+
+mod1_csim = do.call(rbind, mod1_sim) # combine multiple chains
+```
+
+## Lesson 7.4
+
+### MCMC convergence
+
+Enne kui me vaatame mudelist tehtavaid järeldusi, peaksime viima läbi convergence diagnostikat oma Markovi ahelatele
+
+```{r}
+plot(mod1_sim)
+```
+
+```{r}
+gelman.diag(mod1_sim)
+```
+```{r}
+autocorr.diag(mod1_sim)
+```
+```{r}
+autocorr.plot(mod1_sim)
+```
+```{r}
+effectiveSize(mod1_sim)
+```
+Meil on võimalik saada järeljaotuse kokkuvõte oma mudeli parameetritest
+
+```{r}
+summary(mod1_sim)
+```
+
+Tuleb siiski meeles pidada, et need tulemused on regressiooni mudelile, mis seostavad imikusuremuse LOGARITMI sissetuleku LOGAERITMIGA
+
+### Jääkide üle vaatamine
+
+Jääkida üle vaatamine on lineaarsete mudelite puhul oluline, kuna jäägid võivad meile näidata mudeli loomisel tehtud eelduste rikkumist, Me otsime märke sellest, et mudel ei ole lineaarne, normaaljaotusega, või ei vaatlused ei ole sõltumatud (*conditional on covariates*).
+
+Esmalt vaatame, mis oleks juhtunud, kui me sobitaks reference lineaarse mudeli transformeerimata muutujatele:
+
+```{r}
+lmod0 = lm(infant ~ income, data=Leinhardt)
+plot(resid(lmod0)) # to check independence (looks okay)
+```
+
+```{r}
+plot(predict(lmod0), resid(lmod0)) # to check for linearity, constant variance (looks bad)
+```
+
+```{r}
+qqnorm(resid(lmod0)) # to check Normality assumption (we want this to be a straight line)
+```
+
+Nüüd vaatame oma mudelit, mille sobitasime log-transformeeritud muutujatele. bayesi mudeli puhul on meil jääkide jaoks jaotused, kuid me vaatama lihtsuse mõttes ainult jääke, mida on hinnatud parameetrite järeljaotusejärgse keskmise juures.
+
+```{r}
+X = cbind(rep(1.0, data1_jags$n), data1_jags$log_income)
+head(X)
+```
+
+```{r}
+(pm_params1 = colMeans(mod1_csim)) # posterior mean
+```
+
+```{r}
+yhat1 = drop(X %*% pm_params1[1:2])
+resid1 = data1_jags$y - yhat1
+plot(resid1) # against data index
+```
+
+```{r}
+plot(yhat1, resid1) # against predicted values
+```
+
+```{r}
+qqnorm(resid1) # checking normality of residuals
+```
+
+```{r}
+plot(predict(lmod), resid(lmod)) # to compare with reference linear model
+```
+
+```{r}
+rownames(dat)[order(resid1, decreasing=TRUE)[1:5]] # which countries have the largest positive residuals?
+```
+
+Jäägid näevad suhteliselt head välja (pole mingeid selgeid mustreid). väljaarvatud kaks suurt *outlier*it, Saudi Arabia ja Libya. *Outlier*ite puhul on hea idee vaadata üle, et nad poleks lihtsalt andmete sisestamisel tehtud vead. Kui väärtused on õiged, iis tuleks mõelda sellele, kas need andmepunktid on tõesti mudeldatava andmestiku suhtes esinduslikud. Kui järeldus on, et pole (nt nad salvestatierinevatel aastatel), siis võib õigustada nende eemaldamist andmetest.
+
+Kui järelduseks on, et need *outlier*id on andmete osa ja neid ei tohiks eemaldada, siis on meil erinevaid võimalusi, et neid kaasata. Sellest räägime järgmises osas.
+
+## Lesson 7.5
+
+### Lisanduvad kovariaadid
+
+Esimeseks lahenduseks on otsida lisa kovriaate, mis võiksid selgitada outlier'ite olemasolu. Näiteks võib olla mitmeid muutujaid, mis annavad imikusuremuse kohta informatsiooni palju rohkem kui sissetulekud.
+
+Vaadates oma andmeid uuesti, on meil kaks tunnust, mida me pole veel kasutanud: "region" ja "oil". "oil" märgib naftariike. Nii Saudi-Araabia kui ka Liibüa on naftariigid. Seega on võimalik, et see võib meie anomaaliat selgitada.
+
+```{r}
+library("rjags")
+
+mod2_string = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dnorm(mu[i], prec)
+        mu[i] = b[1] + b[2]*log_income[i] + b[3]*is_oil[i]
+    }
+    
+    for (i in 1:3) {
+        b[i] ~ dnorm(0.0, 1.0/1.0e6)
+    }
+    
+    prec ~ dgamma(5/2.0, 5*10.0/2.0)
+    sig = sqrt( 1.0 / prec )
+} "
+
+
+set.seed(73)
+data2_jags = list(y=dat$loginfant, log_income=dat$logincome,
+                  is_oil=as.numeric(dat$oil=="yes"))
+data2_jags$is_oil
+
+params2 = c("b", "sig")
+
+inits2 = function() {
+    inits = list("b"=rnorm(3,0.0,100.0), "prec"=rgamma(1,1.0,1.0))
+}
+
+mod2 = jags.model(textConnection(mod2_string), data=data2_jags, inits=inits2, n.chains=3)
+update(mod2, 1e3) # burn-in
+
+mod2_sim = coda.samples(model=mod2,
+                        variable.names=params2,
+                        n.iter=5e3)
+
+mod2_csim = as.mcmc(do.call(rbind, mod2_sim)) # combine multiple chains
+```
+
+Nagu ikka, vaatame ka *convergence*i diagnostikat
+
+```{r}
+plot(mod2_sim)
+```
+```{r}
+gelman.diag(mod2_sim)
+autocorr.diag(mod2_sim)
+
+autocorr.plot(mod2_sim)
+```
+```{r}
+effectiveSize(mod2_sim)
+```
+
+Järeljaotuse parameetrite kokkuvõte on siin
+
+```{r}
+summary(mod2_sim)
+```
+Tundub, et nafta toomise ja log-imikusuremuse vahel opn positiivne seos. Kuna need andmed on ainult vaatluslikud, siis me ei saa öelda, et nafta tootmine tekitab imikusuremust (see ei ole tõenäoliselt nii), kuid me saame öelda, et nad on positiivses seoses.
+
+Nüüd vaatame jääke
+
+```{r}
+X2 = cbind(rep(1.0, data1_jags$n), data2_jags$log_income, data2_jags$is_oil)
+head(X2)
+```
+```{r}
+(pm_params2 = colMeans(mod2_csim)) # posterior mean
+```
+```{r}
+yhat2 = drop(X2 %*% pm_params2[1:3])
+resid2 = data2_jags$y - yhat2
+plot(resid2) # against data index
+```
+```{r}
+plot(yhat2, resid2) # against predicted values
+```
+```{r}
+plot(yhat1, resid1) # residuals from the first model
+```
+```{r}
+sd(resid2) # standard deviation of residuals
+```
+Nüüd on olukord palju parem, issegi kui Saudi Araabia ja Liibüa jäägid on ikkagi rohkem kui kolm standardhälvet eemal jääkide keskmisest. Võime kaaluda ka uue kovariaadi "region" lisamist, kuid vaatame parem veel ühte võimalust, kui meil on tegu suurte *outlieritega*
+
+### t likelihood
+
+Kaalume likelighoodi muutmist. Normaaljaotuslikul likelihoodil on õhukesed sabad (enamus tõenäosusest on kontsertreeritud ümber mõne esimese standahälbe ümber keskmise). See ei sobi hästi outlieritega. Seega võivad normaaljaotusliku likelihoodiga mudelid olla liiga palju mõjutatud outlieritest. t-jaotus on sarnane normaaljaotusega, kuid sellel on paksemad sabad, mis sobituvad outlieritega paremini.
+
+t-lineaarne mudel võib olla midagi sellist. Pane tähele, et t-jaotusel on kolm parameetrit koos positiivse "degrees of freedom" parameetriga. Mida väiksemad on vabadusastmed, seda paksemad on jaotuse sabad. Me võime vabadusastmed panna mingiks kindlaks väärtuseks või me võime neile määrata vabadusastmed.
+
+```{r}
+mod3_string = " model {
+    for (i in 1:length(y)) {
+        y[i] ~ dt( mu[i], tau, df )
+        mu[i] = b[1] + b[2]*log_income[i] + b[3]*is_oil[i]
+    }
+    
+    for (i in 1:3) {
+        b[i] ~ dnorm(0.0, 1.0/1.0e6)
+    }
+    
+    df = nu + 2.0 # we want degrees of freedom > 2 to guarantee existence of mean and variance
+    nu ~ dexp(1.0)
+    
+    tau ~ dgamma(5/2.0, 5*10.0/2.0) # tau is close to, but not equal to the precision
+    sig = sqrt( 1.0 / tau * df / (df - 2.0) ) # standard deviation of errors
+} "
+```
+
+Mudel sobita ise!!!!!
+
+## Lesson 7.6
+
+### Võrdle mudeleid kasutades *Deviance Information Criterion*'it
+
+Me oleme nüüd mõelnud kolmele erinevale mudelile. Kuidas võrrelda nende toimimist meie andmete valguses. Eeelmsiel kursusel me rääkisime parameetrite hinnangute loomisest kasutades maksimaalse tõepära meetodit. Samamoodi saame me võrrelda erinevaid mudeleid.
+
+Ma kasutame suurust nimega *deviance information criterion* (DIC). See arvutab sisuliselt log-tõepärade järeljaotuse keskmise ja karistab mudeli keerukust.
+
+Arvutame DIC näitaja kahe esimese mudeli jaoks
+
+```{r}
+dic.samples(mod1, n.iter=1e3)
+```
+
+```{r}
+dic.samples(mod2, n.iter=1e3)
+
+```
+
+Esimene number on Monte Carlo hinnangu järeljaotuse keskmise hälve (*Monte Carlo estimated posterior mean deviance*), mis võrdub -2 korda log-tõepära (+ konstant, mis pole mudelite võrdlemisel oluline). Selle -2 faktori tõttu tähendab väiksem hälbimin suuremat tõepära.
+
+Järgmiseks antakse meile mudeli keerukuse eest antav karistus (penalty). See on vajalik sellepärast, et me saame tõepära alati suurendada kui me teeme mudeli keerukamaks, et ta andmetega ideaalselt sobiks. Me ei taha seda sellepärast, et over-fit mudel pole väga hea üldistusastmega. karistus on lihilähedaselt võrdne meie mudelis olevate parameetrite arvuga. 
+
+Me liidame *mean deviance'i* ja *penalty* kokku ja see anneb meile DIC-i. paremini istuval mudelil on madalam DIC väärtus. Siinsel juhul kaaluvad "oil" parameetri lisamisest saadavad kasu üles karistuse, mida selle paramteetri lisamine tähendab. Teise mudeli DIC n väiksem kui esimese mudeli, niiet me peaks eelistama teist mudelit.
+
+DIC ja JAGSi koos kasutamise kohta saame rohkem infot rjags paketist sisestades dic.samples R konsooli.

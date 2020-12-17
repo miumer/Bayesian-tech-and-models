@@ -274,7 +274,7 @@ The following code completes one iteration of an algorithm to simulate a chain w
   if (u < alpha) { # then accept the candidate
     theta_now = theta_cand
     accpt = accpt + 1 # to keep track of acceptance
-  } " 
+  } 
 
 ```
 

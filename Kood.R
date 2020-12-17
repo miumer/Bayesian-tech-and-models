@@ -154,3 +154,22 @@ for (i in 2:30) {
 round(W30, 3)
 
 install.packages("rjags")
+
+
+update_mu = function(n, ybar, sig2, mu_0, sig2_0) {
+  sig2_1 = 1.0 / (n / sig2 + 1.0 / sig2_0)
+  mu_1 = sig2_1 * (n * ybar / sig2 + mu_0 / sig2_0)
+  rnorm(n=1, mean=mu_1, sd=sqrt(sig2_1))
+}
+
+#siin all on nu_0 ja beta_0 eeljaotuse parameetrid, mille me paika paneme eelnevalt
+update_sig2 = function(n, y, mu, nu_0, beta_0) {
+  nu_1 = nu_0 + n / 2.0 
+  sumsq = sum( (y - mu)^2 ) # vectorized
+  beta_1 = beta_0 + sumsq / 2.0
+  out_gamma = rgamma(n=1, shape=nu_1, rate=beta_1) # rate for gamma is shape for inv-gamma kuna r ei võimalda otse gammast tõmmata tõmbame algusest gammast ja siis võtame inverse'i, mis on sama kui otse gammast tõmmata.
+  1.0 / out_gamma # reciprocal of a gamma random variable is distributed inv-gamma
+}
+
+
+install.packages("rjags")
